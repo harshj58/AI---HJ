@@ -33,6 +33,11 @@
 
             useEffect(() => { endRef.current?.scrollIntoView({ behavior: 'smooth' }); }, [messages]);
 
+            // CLEANING FUNCTION: Removes all * symbols from the text
+            const cleanText = (text) => {
+                return text.replace(/\*/g, '');
+            };
+
             const sendMessage = async () => {
                 if (!input.trim() || loading) return;
                 const userMsg = input.trim();
@@ -55,7 +60,7 @@
                         setMessages(prev => [...prev, { role: 'assistant', content: data.choices[0].message.content }]);
                     } else { throw new Error(); }
                 } catch (err) {
-                    setMessages(prev => [...prev, { role: 'assistant', content: "⚠️ Error: Check your API key or model selection." }]);
+                    setMessages(prev => [...prev, { role: 'assistant', content: "Error: Check your API key." }]);
                 } finally {
                     setLoading(false);
                 }
@@ -69,10 +74,10 @@
                             <p className="text-indigo-500 text-[10px] font-bold uppercase tracking-widest mb-8">Universal Assistant</p>
                             <div className={`mb-6 p-4 rounded-2xl border ${isDarkMode ? 'bg-slate-950 border-slate-800' : 'bg-slate-50 border-slate-200'}`}>
                                 <p className="text-xs opacity-60 mb-1">Get API Key:</p>
-                                <a href="https://console.groq.com/keys" target="_blank" className="text-indigo-500 font-bold text-sm underline">console.groq.com</a>
+                                <a href="https://console.groq.com/keys" target="_blank" className="text-indigo-400 font-bold text-sm underline">console.groq.com</a>
                             </div>
-                            <input type="password" placeholder="Enter gsk_ key" className={`w-full p-4 rounded-xl mb-4 text-center text-sm font-bold border transition-all ${isDarkMode ? 'bg-slate-800 border-slate-700 text-white' : 'bg-slate-100 border-slate-200 text-slate-900'}`} value={apiKey} onChange={(e) => setApiKey(e.target.value)} />
-                            <button onClick={() => apiKey.startsWith('gsk_') ? setView('chat') : alert('Invalid Key')} className="w-full bg-indigo-600 p-4 rounded-xl font-black uppercase text-white hover:bg-indigo-500 active:scale-95 transition-all shadow-lg">Start Chatting</button>
+                            <input type="password" placeholder="Enter gsk_ key" className={`w-full p-4 rounded-xl mb-4 text-center text-sm font-bold border ${isDarkMode ? 'bg-slate-800 border-slate-700 text-white' : 'bg-slate-100 border-slate-200 text-slate-900'}`} value={apiKey} onChange={(e) => setApiKey(e.target.value)} />
+                            <button onClick={() => apiKey.startsWith('gsk_') ? setView('chat') : alert('Invalid Key')} className="w-full bg-indigo-600 p-4 rounded-xl font-black uppercase text-white hover:bg-indigo-500 transition-all">Start Chatting</button>
                         </div>
                     </div>
                 );
@@ -81,10 +86,7 @@
             return (
                 <div className={`flex flex-col h-full ${isDarkMode ? 'bg-slate-950 text-slate-100' : 'bg-slate-50 text-slate-900'}`}>
                     <header className={`p-4 border-b flex justify-between items-center z-30 ${isDarkMode ? 'bg-slate-900 border-slate-800' : 'bg-white border-slate-200'}`}>
-                        <div className="flex items-center gap-2">
-                            <div className="w-2 h-2 bg-indigo-500 rounded-full animate-pulse shadow-[0_0_8px_rgba(99,102,241,0.6)]"></div>
-                            <span className="font-black text-xs uppercase tracking-widest">Universal AI</span>
-                        </div>
+                        <span className="font-black text-xs uppercase tracking-widest">Universal AI</span>
                         <button onClick={() => setShowSettings(!showSettings)} className="p-2 rounded-lg hover:bg-slate-700/20 transition-colors">
                             <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5"><circle cx="12" cy="12" r="3"/><path d="M19.4 15a1.65 1.65 0 0 0 .33 1.82l.06.06a2 2 0 0 1 0 2.83 2 2 0 0 1-2.83 0l-.06-.06a1.65 1.65 0 0 0-1.82-.33 1.65 1.65 0 0 0-1 1.51V21a2 2 0 0 1-2 2 2 2 0 0 1-2-2v-.09A1.65 1.65 0 0 0 9 19.4a1.65 1.65 0 0 0-1.82.33l-.06.06a2 2 0 0 1-2.83 0 2 2 0 0 1 0-2.83l.06-.06a1.65 1.65 0 0 0 .33-1.82 1.65 1.65 0 0 0-1.51-1H3a2 2 0 0 1-2-2 2 2 0 0 1 2-2h.09A1.65 1.65 0 0 0 4.6 9a1.65 1.65 0 0 0-.33-1.82l-.06-.06a2 2 0 0 1 0-2.83 2 2 0 0 1 2.83 0l.06.06a1.65 1.65 0 0 0 1.82.33H9a1.65 1.65 0 0 0 1-1.51V3a2 2 0 0 1 2-2 2 2 0 0 1 2 2v.09a1.65 1.65 0 0 0 1 1.51 1.65 1.65 0 0 0 1.82-.33l.06-.06a2 2 0 0 1 2.83 0 2 2 0 0 1 0 2.83l-.06.06a1.65 1.65 0 0 0-.33 1.82V9a1.65 1.65 0 0 0 1.51 1H21a2 2 0 0 1 2 2 2 2 0 0 1-2 2h-.09a1.65 1.65 0 0 0-1.51 1z"/></svg>
                         </button>
@@ -92,19 +94,9 @@
 
                     {showSettings && (
                         <div className={`absolute top-16 right-4 w-64 rounded-2xl shadow-2xl p-4 z-40 border ${isDarkMode ? 'bg-slate-900 border-slate-800' : 'bg-white border-slate-200'}`}>
-                            <p className="text-[10px] font-black uppercase opacity-40 mb-3 tracking-widest">Model Selector</p>
-                            <div className="space-y-2 mb-4">
-                                <button onClick={() => setActiveModel('llama-3.3-70b-versatile')} className={`w-full text-left p-3 rounded-xl text-xs font-bold border transition-all ${activeModel === 'llama-3.3-70b-versatile' ? 'border-indigo-500 bg-indigo-500/10 text-indigo-400' : (isDarkMode ? 'border-slate-800' : 'border-slate-100')}`}>
-                                    Llama 3.3 70b (High IQ)
-                                </button>
-                                <button onClick={() => setActiveModel('llama-3.1-8b-instant')} className={`w-full text-left p-3 rounded-xl text-xs font-bold border transition-all ${activeModel === 'llama-3.1-8b-instant' ? 'border-indigo-500 bg-indigo-500/10 text-indigo-400' : (isDarkMode ? 'border-slate-800' : 'border-slate-100')}`}>
-                                    Llama 3.1 8b (Instant)
-                                </button>
-                            </div>
-                            <button onClick={() => setIsDarkMode(!isDarkMode)} className={`w-full flex items-center justify-between p-3 rounded-xl mb-4 text-sm font-bold ${isDarkMode ? 'bg-slate-800' : 'bg-slate-100'}`}>
-                                <span>{isDarkMode ? '☀️ Light Mode' : '🌙 Dark Mode'}</span>
-                            </button>
-                            <button onClick={() => setView('login')} className="w-full p-3 rounded-xl text-sm font-bold text-red-500 hover:bg-red-500/10 transition-all">Logout</button>
+                            <button onClick={() => setActiveModel('llama-3.3-70b-versatile')} className={`w-full text-left p-3 rounded-xl text-xs font-bold mb-2 border ${activeModel === 'llama-3.3-70b-versatile' ? 'border-indigo-500 bg-indigo-500/10 text-indigo-400' : 'border-slate-800'}`}>Llama 3.3 70b</button>
+                            <button onClick={() => setIsDarkMode(!isDarkMode)} className="w-full text-left p-3 rounded-xl mb-2 bg-slate-800 text-xs font-bold">Toggle {isDarkMode ? 'Light' : 'Dark'} Mode</button>
+                            <button onClick={() => setView('login')} className="w-full p-3 rounded-xl text-xs font-bold text-red-500">Logout</button>
                         </div>
                     )}
 
@@ -112,17 +104,17 @@
                         {messages.map((m, i) => (
                             <div key={i} className={`flex ${m.role === 'user' ? 'justify-end' : 'justify-start'}`}>
                                 <div className={`max-w-[85%] p-4 rounded-2xl text-sm leading-relaxed ${m.role === 'user' ? 'bg-indigo-600 text-white shadow-lg' : (isDarkMode ? 'bg-slate-900 border border-slate-800 text-slate-200' : 'bg-white border border-slate-200 text-slate-900 shadow-sm')}`}>
-                                    <div className="whitespace-pre-wrap">{m.content}</div>
+                                    <div className="whitespace-pre-wrap">{cleanText(m.content)}</div>
                                 </div>
                             </div>
                         ))}
-                        {loading && <div className="text-indigo-500 text-[10px] font-black animate-pulse uppercase px-2 tracking-widest">Thinking...</div>}
+                        {loading && <div className="text-indigo-500 text-[10px] font-black animate-pulse px-2 tracking-widest uppercase">Thinking...</div>}
                         <div ref={endRef} className="h-4" />
                     </div>
 
                     <footer className={`p-4 border-t pb-8 ${isDarkMode ? 'bg-slate-900 border-slate-800' : 'bg-white border-slate-200'}`}>
                         <div className="flex gap-2 max-w-3xl mx-auto">
-                            <input className={`flex-1 p-4 rounded-xl text-sm border transition-all ${isDarkMode ? 'bg-slate-800 border-slate-700 text-white placeholder-slate-500' : 'bg-slate-100 border-slate-200 text-slate-900'}`} placeholder="Ask me anything..." value={input} onChange={(e) => setInput(e.target.value)} onKeyPress={(e) => e.key === 'Enter' && sendMessage()} />
+                            <input className={`flex-1 p-4 rounded-xl text-sm transition-all border ${isDarkMode ? 'bg-slate-800 border-slate-700 text-white placeholder-slate-500' : 'bg-slate-100 border-slate-200 text-slate-900'}`} placeholder="Ask me anything..." value={input} onChange={(e) => setInput(e.target.value)} onKeyPress={(e) => e.key === 'Enter' && sendMessage()} />
                             <button onClick={sendMessage} className="bg-indigo-600 p-4 rounded-xl shadow-lg hover:bg-indigo-500 transition-all flex items-center justify-center">
                                 <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="white" strokeWidth="3"><path d="m22 2-7 20-4-9-9-4Z"/><path d="M22 2 11 13"/></svg>
                             </button>

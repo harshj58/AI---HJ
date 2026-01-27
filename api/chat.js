@@ -15,7 +15,7 @@ export default async function handler(req, res) {
         messages: [
           { 
             role: "system", 
-            content: "You are a helpful AI assistant. IMPORTANT: Do not use markdown symbols like asterisks (*) or bold text. Provide plain text responses only." 
+            content: "You are a helpful and intelligent AI assistant. Provide clear, accurate information on any topic requested. IMPORTANT: Do not use any asterisks (*) or markdown symbols for bolding. Provide plain text responses only." 
           },
           ...messages
         ],
@@ -26,6 +26,6 @@ export default async function handler(req, res) {
     const data = await response.json();
     res.status(200).json(data);
   } catch (error) {
-    res.status(500).json({ error: "Server Error" });
+    res.status(500).json({ error: "Server Error: Could not connect to Groq" });
   }
 }

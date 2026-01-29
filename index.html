@@ -15,12 +15,12 @@
         /* INTENSE SHAKE ANIMATION */
         @keyframes shake {
             0% { transform: translate(4px, 4px) rotate(0deg); }
-            25% { transform: translate(-4px, -4px) rotate(-2deg); }
-            50% { transform: translate(4px, -4px) rotate(2deg); }
-            75% { transform: translate(-4px, 4px) rotate(-1deg); }
+            25% { transform: translate(-4px, -4px) rotate(-2.5deg); }
+            50% { transform: translate(4px, -4px) rotate(2.5deg); }
+            75% { transform: translate(-4px, 4px) rotate(-1.5deg); }
             100% { transform: translate(0px, 0px) rotate(0deg); }
         }
-        .vibrate-active { animation: shake 0.1s infinite; }
+        .vibrate-active { animation: shake 0.08s infinite; }
 
         .login-card { border-radius: 3rem; padding: 3rem; width: 100%; max-width: 420px; text-align: center; z-index: 20; }
         .bottom-watermark { position: absolute; bottom: 1.5rem; width: 100%; text-align: center; z-index: 30; pointer-events: none; }
@@ -46,14 +46,14 @@
 
             useEffect(() => { endRef.current?.scrollIntoView({ behavior: 'smooth' }); }, [messages]);
 
-            // Robust Speech Function
-            const speak = (text, pitch = 1) => {
+            // Speech Function
+            const speak = (text, pitch = 1, rate = 1) => {
                 if ('speechSynthesis' in window) {
-                    window.speechSynthesis.cancel(); // Stop any current speech
+                    window.speechSynthesis.cancel();
                     const utterance = new SpeechSynthesisUtterance(text);
                     utterance.pitch = pitch;
-                    utterance.rate = 1.0;
-                    utterance.volume = 1.0; // Max volume
+                    utterance.rate = rate;
+                    utterance.volume = 1.0;
                     window.speechSynthesis.speak(utterance);
                 }
             };
@@ -63,17 +63,17 @@
                 const userMsg = input.trim();
                 const normalized = userMsg.replace(/\s+/g, '').toLowerCase();
 
-                // 67 TRIGGER
+                // TRIGGER 1: 67 (SAYING SIX SEVEN)
                 if (normalized === '67') {
                     setIsVibrating(true);
-                    speak("67", 1.2);
+                    speak("6 7", 1.2, 0.9); // Space between digits forces individual pronunciation
                     setTimeout(() => setIsVibrating(false), 800);
                 } 
                 
-                // 10 + 9 = 21 TRIGGER (Catches variants like 10+9=21)
+                // TRIGGER 2: 10+9=21
                 if (normalized === '10+9=21') {
                     setIsVibrating(true);
-                    speak("You dumb", 0.6);
+                    speak("You dumb", 0.5, 1);
                     setTimeout(() => setIsVibrating(false), 1200);
                 }
 
@@ -94,8 +94,7 @@
 
             const handleLogin = () => {
                 if (apiKey.startsWith('gsk_')) {
-                    // "Unlock" speech synthesis via user gesture
-                    speak("", 1); 
+                    speak("", 1); // Priming audio system
                     setView('chat');
                 } else {
                     alert('Invalid Key');
@@ -146,7 +145,7 @@
                     <div className="flex-1 overflow-y-auto p-4 space-y-6 pb-28" onClick={() => setShowSettings(false)}>
                         {messages.map((m, i) => (
                             <div key={i} className={`flex ${m.role === 'user' ? 'justify-end' : 'justify-start'}`}>
-                                <div className={`max-w-[85%] p-4 rounded-2xl text-sm leading-relaxed ${m.role === 'user' ? 'bg-blue-600 text-white' : (isDarkMode ? 'bg-slate-900 border border-slate-800 text-slate-100' : 'bg-white border border-slate-200 text-slate-900')}`}>
+                                <div className={`max-w-[85%] p-4 rounded-2xl text-sm leading-relaxed ${m.role === 'user' ? 'bg-blue-600 text-white shadow-lg' : (isDarkMode ? 'bg-slate-900 border border-slate-800 text-slate-100 shadow-sm' : 'bg-white border border-slate-200 text-slate-900 shadow-sm')}`}>
                                     {m.content.replace(/\*/g, '')}
                                 </div>
                             </div>
@@ -156,8 +155,8 @@
 
                     <footer className={`p-4 border-t pb-10 fixed bottom-0 w-full backdrop-blur-md ${isDarkMode ? 'bg-slate-950/80 border-slate-800' : 'bg-slate-50/80 border-slate-200'}`}>
                         <div className="flex gap-2 max-w-3xl mx-auto">
-                            <input className={`flex-1 p-4 rounded-xl border text-sm ${isDarkMode ? 'bg-slate-900 border-slate-800 text-white' : 'bg-white border-slate-300'}`} placeholder="Type here..." value={input} onChange={(e) => setInput(e.target.value)} onKeyPress={(e) => e.key === 'Enter' && onChat()} />
-                            <button onClick={onChat} className="bg-blue-600 px-6 rounded-xl font-black uppercase text-[11px] text-white">Send</button>
+                            <input className={`flex-1 p-4 rounded-xl border text-sm transition-all ${isDarkMode ? 'bg-slate-900 border-slate-800 text-white focus:border-blue-500' : 'bg-white border-slate-300 focus:border-blue-500'}`} placeholder="Enter trigger..." value={input} onChange={(e) => setInput(e.target.value)} onKeyPress={(e) => e.key === 'Enter' && onChat()} />
+                            <button onClick={onChat} className="bg-blue-600 px-6 rounded-xl font-black uppercase text-[11px] text-white active:scale-95 transition-all">Send</button>
                         </div>
                     </footer>
                 </div>

@@ -3,105 +3,148 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no, viewport-fit=cover">
-    <title>Universal Groq AI</title>
+    <title>Universal AI</title>
     <script src="https://cdn.tailwindcss.com"></script>
     <script src="https://unpkg.com/react@18/umd/react.production.min.js"></script>
     <script src="https://unpkg.com/react-dom@18/umd/react-dom.production.min.js"></script>
     <script src="https://unpkg.com/@babel/standalone/babel.min.js"></script>
     <style>
-        html, body { height: 100%; margin: 0; padding: 0; overflow: hidden; font-family: sans-serif; }
+        html, body { height: 100%; margin: 0; padding: 0; overflow: hidden; font-family: ui-sans-serif, system-ui; }
         #root { height: 100%; display: flex; flex-direction: column; }
-        .watermark { position: absolute; bottom: 30px; width: 100%; text-align: center; opacity: 0.4; font-size: 11px; font-weight: 900; letter-spacing: 0.15em; text-transform: uppercase; pointer-events: none; z-index: 0; }
-        input, button { outline: none !important; -webkit-tap-highlight-color: transparent; }
+        
+        /* SHAKE ANIMATION FOR '67' TRIGGER */
+        @keyframes shake {
+            0% { transform: translate(1px, 1px) rotate(0deg); }
+            100% { transform: translate(-1px, -2px) rotate(-1deg); }
+        }
+        .vibrate-active { animation: shake 0.1s infinite; }
+
+        .login-card { border-radius: 3rem; padding: 3rem; width: 100%; max-width: 420px; text-align: center; z-index: 20; }
+        .bottom-watermark { position: absolute; bottom: 1.5rem; width: 100%; text-align: center; z-index: 30; pointer-events: none; }
     </style>
 </head>
-<body class="bg-slate-50 dark:bg-slate-950 text-slate-900 dark:text-slate-100">
+<body class="transition-colors duration-300">
     <div id="root"></div>
     <script type="text/babel">
         const { useState, useRef, useEffect } = React;
 
-        const Logo = ({ size = 24 }) => (
-            <svg width={size} height={size} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round" className="text-indigo-500">
-                <circle cx="12" cy="12" r="10"/><path d="M12 2a14.5 14.5 0 0 0 0 20 14.5 14.5 0 0 0 0-20"/><path d="M2 12h20"/>
-            </svg>
-        );
-
         function App() {
             const [apiKey, setApiKey] = useState('');
+            const [view, setView] = useState('login');
             const [messages, setMessages] = useState([]);
             const [input, setInput] = useState('');
             const [loading, setLoading] = useState(false);
-            const [view, setView] = useState('login'); 
-            const [isDarkMode, setIsDarkMode] = useState(true);
             const [showSettings, setShowSettings] = useState(false);
+            const [isDarkMode, setIsDarkMode] = useState(true);
             const [activeModel, setActiveModel] = useState('llama-3.3-70b-versatile');
+            const [isVibrating, setIsVibrating] = useState(false);
             const endRef = useRef(null);
 
             useEffect(() => { endRef.current?.scrollIntoView({ behavior: 'smooth' }); }, [messages]);
 
-            const cleanDisplay = (text) => text.replace(/\*/g, '');
+            const cleanText = (t) => t.replace(/\*/g, '');
 
-            const sendMessage = async () => {
-                if (!input.trim() || loading) return;
+            const onChat = async () => {
+                if(!input.trim()) return;
                 const userMsg = input.trim();
+
+                // THE '67' TRIGGER
+                if (userMsg === '67') {
+                    setIsVibrating(true);
+                    setTimeout(() => setIsVibrating(false), 800);
+                }
+
                 setMessages(prev => [...prev, { role: 'user', content: userMsg }]);
                 setInput('');
                 setLoading(true);
                 try {
-                    const res = await fetch('/api/chat', {
+                    const res = await fetch('https://api.groq.com/openai/v1/chat/completions', {
                         method: 'POST',
-                        headers: { 'Content-Type': 'application/json' },
-                        body: JSON.stringify({ apiKey, model: activeModel, messages: [...messages, { role: 'user', content: userMsg }] })
+                        headers: { 'Authorization': `Bearer ${apiKey}`, 'Content-Type': 'application/json' },
+                        body: JSON.stringify({ model: activeModel, messages: [...messages, { role: 'user', content: userMsg }] })
                     });
                     const data = await res.json();
-                    if (data.choices) setMessages(prev => [...prev, { role: 'assistant', content: data.choices[0].message.content }]);
-                } catch (err) { setMessages(prev => [...prev, { role: 'assistant', content: "Error: Connection lost." }]); } finally { setLoading(false); }
+                    setMessages(prev => [...prev, { role: 'assistant', content: data.choices[0].message.content }]);
+                } catch(e) { alert("Error connecting to Groq"); } finally { setLoading(false); }
             };
+
+            const themeClass = isDarkMode ? "bg-slate-950 text-white" : "bg-slate-50 text-slate-900";
+            const cardClass = isDarkMode ? "bg-slate-900 border-slate-800 shadow-2xl" : "bg-white border-slate-200 shadow-xl";
 
             if (view === 'login') {
                 return (
-                    <div className={`relative flex items-center justify-center h-full p-6 ${isDarkMode ? 'bg-slate-950 text-white' : 'bg-slate-100 text-slate-900'}`}>
-                        <div className={`w-full max-w-sm p-10 rounded-[3rem] shadow-2xl text-center border z-10 ${isDarkMode ? 'bg-slate-900 border-slate-800' : 'bg-white border-slate-200'}`}>
-                            <div className="flex justify-center mb-6"><Logo size={54} /></div>
-                            <h1 className="text-3xl font-black mb-1 tracking-tight uppercase">Universal AI</h1>
-                            <p className="text-indigo-500 text-[10px] font-bold uppercase tracking-[0.3em] mb-8 opacity-80">Groq Assistant</p>
-                            <div className="mb-8">
-                                <a href="https://console.groq.com/keys" target="_blank" rel="noreferrer" className="bg-indigo-500/10 text-indigo-500 p-3 rounded-xl text-[10px] font-black uppercase tracking-widest border border-indigo-500/20 block hover:bg-indigo-500/20 transition-all">Get API Key From Groq</a>
+                    <div className={`relative h-full flex items-center justify-center p-6 transition-colors duration-300 ${themeClass}`}>
+                        <div className={`login-card border ${cardClass}`}>
+                            <h1 className="text-4xl font-black mb-1 tracking-tighter uppercase">Universal AI</h1>
+                            <p className="text-blue-500 text-[10px] font-bold uppercase tracking-[0.3em] mb-8">Intelligence Suite</p>
+                            
+                            <div className="mb-6">
+                                <a href="https://console.groq.com/keys" target="_blank" rel="noopener noreferrer" className="block w-full py-3 rounded-xl bg-blue-600/10 border border-blue-600/30 text-blue-500 font-black uppercase text-[11px] tracking-widest hover:bg-blue-600/20 transition-all">
+                                    Get Groq API Key
+                                </a>
                             </div>
-                            <input type="password" placeholder="gsk_..." className={`w-full p-4 rounded-2xl mb-4 text-center text-sm font-bold border transition-all ${isDarkMode ? 'bg-slate-800 border-slate-700 text-white' : 'bg-slate-50 border-slate-200'}`} value={apiKey} onChange={(e) => setApiKey(e.target.value)} />
-                            <button onClick={() => apiKey.startsWith('gsk_') ? setView('chat') : alert('Invalid Key')} className="w-full bg-indigo-600 p-4 rounded-2xl font-black uppercase text-white shadow-lg active:scale-95 transition-all">Launch AI</button>
+
+                            <input 
+                                type="password" 
+                                placeholder="Enter API Key" 
+                                className={`w-full p-4 rounded-2xl mb-4 text-center text-sm font-bold border focus:border-blue-500 transition-all ${isDarkMode ? 'bg-slate-800 border-slate-700 text-white' : 'bg-slate-100 border-slate-300 text-slate-900'}`}
+                                value={apiKey}
+                                onChange={(e) => setApiKey(e.target.value)}
+                            />
+                            
+                            <button 
+                                onClick={() => apiKey.startsWith('gsk_') ? setView('chat') : alert('Invalid Key')}
+                                className="w-full bg-blue-600 text-white font-black uppercase py-4 rounded-2xl shadow-xl active:scale-95 transition-all"
+                            >
+                                START SYSTEM
+                            </button>
                         </div>
-                        <div className={`watermark ${isDarkMode ? 'text-indigo-400' : 'text-slate-400'}`}>Powered by Gemini & Groq</div>
+
+                        <div className="bottom-watermark">
+                            <p className="text-blue-500 font-black uppercase tracking-[0.4em] text-[12px] opacity-80">
+                                Powered by Gemini & Groq
+                            </p>
+                        </div>
                     </div>
                 );
             }
 
             return (
-                <div className={`flex flex-col h-full ${isDarkMode ? 'bg-slate-950' : 'bg-slate-50'}`}>
-                    <header className={`p-4 border-b flex justify-between items-center z-30 ${isDarkMode ? 'bg-slate-900 border-slate-800' : 'bg-white border-slate-200'}`}>
-                        <div className="flex items-center gap-2"><Logo size={22} /><span className="font-black text-xs uppercase tracking-widest">Universal AI</span></div>
-                        <button onClick={() => setShowSettings(!showSettings)} className="p-2 rounded-xl hover:bg-slate-700/20 transition-all"><svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5"><circle cx="12" cy="12" r="3"/><path d="M19.4 15a1.65 1.65 0 0 0 .33 1.82l.06.06a2 2 0 0 1 0 2.83 2 2 0 0 1-2.83 0l-.06-.06a1.65 1.65 0 0 0-1.82-.33 1.65 1.65 0 0 0-1 1.51V21a2 2 0 0 1-2 2 2 2 0 0 1-2-2v-.09A1.65 1.65 0 0 0 9 19.4a1.65 1.65 0 0 0-1.82.33l-.06.06a2 2 0 0 1-2.83 0 2 2 0 0 1 0-2.83l.06-.06a1.65 1.65 0 0 0 .33-1.82 1.65 1.65 0 0 0-1.51-1H3a2 2 0 0 1-2-2 2 2 0 0 1 2-2h.09A1.65 1.65 0 0 0 4.6 9a1.65 1.65 0 0 0-.33-1.82l-.06-.06a2 2 0 0 1 0-2.83 2 2 0 0 1 2.83 0l.06.06a1.65 1.65 0 0 0 1.82.33H9a1.65 1.65 0 0 0 1-1.51V3a2 2 0 0 1 2-2 2 2 0 0 1 2 2v.09a1.65 1.65 0 0 0 1 1.51 1.65 1.65 0 0 0 1.82-.33l.06-.06a2 2 0 0 1 2.83 0 2 2 0 0 1 0 2.83l-.06.06a1.65 1.65 0 0 0-.33 1.82V9a1.65 1.65 0 0 0 1.51 1H21a2 2 0 0 1 2 2 2 2 0 0 1-2 2h-.09a1.65 1.65 0 0 0-1.51 1z"/></svg></button>
+                <div className={`flex flex-col h-full transition-colors duration-300 ${themeClass} ${isVibrating ? 'vibrate-active' : ''}`}>
+                    <header className={`p-4 border-b flex justify-between items-center z-50 ${isDarkMode ? 'bg-slate-900 border-slate-800' : 'bg-white border-slate-200'}`}>
+                        <span className="text-blue-500 font-black tracking-tighter uppercase text-sm">Universal AI</span>
+                        <button onClick={() => setShowSettings(!showSettings)} className="p-2 hover:opacity-70 transition-all text-blue-500">
+                             <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5"><circle cx="12" cy="12" r="3"/><path d="M19.4 15a1.65 1.65 0 0 0 .33 1.82l.06.06a2 2 0 0 1 0 2.83 2 2 0 0 1-2.83 0l-.06-.06a1.65 1.65 0 0 0-1.82-.33 1.65 1.65 0 0 0-1 1.51V21a2 2 0 0 1-2 2 2 2 0 0 1-2-2v-.09A1.65 1.65 0 0 0 9 19.4a1.65 1.65 0 0 0-1.82.33l-.06.06a2 2 0 0 1-2.83 0 2 2 0 0 1 0-2.83l.06-.06a1.65 1.65 0 0 0 .33-1.82 1.65 1.65 0 0 0-1.51-1H3a2 2 0 0 1-2-2 2 2 0 0 1 2-2h.09A1.65 1.65 0 0 0 4.6 9a1.65 1.65 0 0 0-.33-1.82l-.06-.06a2 2 0 0 1 0-2.83 2 2 0 0 1 2.83 0l.06.06a1.65 1.65 0 0 0 1.82.33H9a1.65 1.65 0 0 0 1-1.51V3a2 2 0 0 1 2-2 2 2 0 0 1 2 2v.09a1.65 1.65 0 0 0 1 1.51 1.65 1.65 0 0 0 1.82-.33l.06-.06a2 2 0 0 1 2.83 0 2 2 0 0 1 0 2.83l-.06.06a1.65 1.65 0 0 0-.33 1.82V9a1.65 1.65 0 0 0 1.51 1H21a2 2 0 0 1 2 2 2 2 0 0 1-2 2h-.09a1.65 1.65 0 0 0-1.51 1z"/></svg>
+                        </button>
                     </header>
+
                     {showSettings && (
-                        <div className={`absolute top-16 right-4 w-64 rounded-[2rem] shadow-2xl p-5 z-40 border ${isDarkMode ? 'bg-slate-900 border-slate-800' : 'bg-white border-slate-200'}`}>
-                             <p className="text-[10px] font-black uppercase opacity-40 mb-3 tracking-[0.2em]">Models</p>
-                             <button onClick={() => { setActiveModel('llama-3.3-70b-versatile'); setShowSettings(false); }} className={`w-full text-left p-3 rounded-xl text-xs font-bold mb-2 border ${activeModel === 'llama-3.3-70b-versatile' ? 'border-indigo-500 bg-indigo-500/10 text-indigo-400' : (isDarkMode ? 'border-slate-800' : 'border-slate-100')}`}>Llama 3.3 (Smart)</button>
-                             <p className="text-[10px] font-black uppercase opacity-40 mb-3 tracking-[0.2em]">Settings</p>
-                             <button onClick={() => setIsDarkMode(!isDarkMode)} className="w-full p-3 rounded-xl mb-4 text-xs font-bold bg-indigo-600 text-white">Toggle Theme</button>
-                             <button onClick={() => setView('login')} className="w-full text-red-500 text-[10px] font-black uppercase tracking-widest text-center">Logout</button>
+                        <div className={`absolute top-16 right-4 w-64 border rounded-[2rem] shadow-2xl p-6 z-[100] ${isDarkMode ? 'bg-slate-900 border-slate-800' : 'bg-white border-slate-200'}`}>
+                            <p className="text-[10px] font-black uppercase opacity-40 mb-3 tracking-widest">Models</p>
+                            <div className="space-y-2 mb-6">
+                                <button onClick={() => setActiveModel('llama-3.3-70b-versatile')} className={`w-full text-left p-3 rounded-xl text-xs font-bold border transition-all ${activeModel.includes('70b') ? 'border-blue-500 bg-blue-500/10 text-blue-500' : 'border-transparent opacity-60'}`}>Llama 3.3 Expert</button>
+                                <button onClick={() => setActiveModel('llama3-8b-8192')} className={`w-full text-left p-3 rounded-xl text-xs font-bold border transition-all ${activeModel.includes('8b') ? 'border-blue-500 bg-blue-500/10 text-blue-500' : 'border-transparent opacity-60'}`}>Llama 3 Fast</button>
+                            </div>
+                            <button onClick={() => setIsDarkMode(!isDarkMode)} className="w-full bg-blue-600 text-white p-3 rounded-xl text-xs font-black uppercase mb-6 shadow-lg">Toggle Mode</button>
+                            <button onClick={() => {setView('login'); setApiKey(''); setShowSettings(false)}} className="w-full text-red-500 text-[10px] font-black uppercase tracking-[0.2em] text-center">Logout</button>
                         </div>
                     )}
-                    <div className="flex-1 overflow-y-auto p-4 space-y-6 pb-24" onClick={() => setShowSettings(false)}>
+
+                    <div className="flex-1 overflow-y-auto p-4 space-y-6 pb-28" onClick={() => setShowSettings(false)}>
                         {messages.map((m, i) => (
                             <div key={i} className={`flex ${m.role === 'user' ? 'justify-end' : 'justify-start'}`}>
-                                <div className={`max-w-[88%] p-4 rounded-2xl text-sm ${m.role === 'user' ? 'bg-indigo-600 text-white shadow-md' : (isDarkMode ? 'bg-slate-900 border border-slate-800 text-slate-200 shadow-sm' : 'bg-white border border-slate-200 text-slate-900 shadow-sm')}`}>{cleanDisplay(m.content)}</div>
+                                <div className={`max-w-[85%] p-4 rounded-2xl text-sm leading-relaxed shadow-sm ${m.role === 'user' ? 'bg-blue-600 text-white' : (isDarkMode ? 'bg-slate-900 border border-slate-800 text-slate-100' : 'bg-white border border-slate-200 text-slate-900')}`}>
+                                    {cleanText(m.content)}
+                                </div>
                             </div>
                         ))}
+                        <div ref={endRef} />
                     </div>
-                    <footer className="fixed bottom-0 left-0 right-0 p-4 border-t pb-8 bg-inherit">
+
+                    <footer className={`p-4 border-t pb-10 fixed bottom-0 w-full backdrop-blur-md ${isDarkMode ? 'bg-slate-950/80 border-slate-800' : 'bg-slate-50/80 border-slate-200'}`}>
                         <div className="flex gap-2 max-w-3xl mx-auto">
-                            <input className={`flex-1 p-4 rounded-2xl text-sm border ${isDarkMode ? 'bg-slate-800 border-slate-700 text-white' : 'bg-slate-100 border-slate-200'}`} placeholder="Ask me..." value={input} onChange={(e) => setInput(e.target.value)} onKeyPress={(e) => e.key === 'Enter' && sendMessage()} />
-                            <button onClick={sendMessage} className="bg-indigo-600 p-4 rounded-2xl shadow-lg px-6 active:scale-90 transition-all"><svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="white" strokeWidth="3"><path d="m22 2-7 20-4-9-9-4Z"/><path d="M22 2 11 13"/></svg></button>
+                            <input className={`flex-1 p-4 rounded-xl border transition-all text-sm ${isDarkMode ? 'bg-slate-900 border-slate-800 text-white' : 'bg-white border-slate-300 text-slate-900'}`} placeholder="Type something..." value={input} onChange={(e) => setInput(e.target.value)} onKeyPress={(e) => e.key === 'Enter' && onChat()} />
+                            <button onClick={onChat} className="bg-blue-600 px-6 rounded-xl font-black uppercase text-[11px] text-white tracking-widest">Send</button>
                         </div>
                     </footer>
                 </div>

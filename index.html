@@ -12,22 +12,19 @@
         html, body { height: 100%; margin: 0; padding: 0; overflow: hidden; font-family: ui-sans-serif, system-ui; }
         #root { height: 100%; display: flex; flex-direction: column; }
         
-        /* MADNESS ANIMATIONS */
-        @keyframes ultra-shake {
-            0% { transform: translate(8px, 8px) rotate(0deg); filter: hue-rotate(0deg); }
-            25% { transform: translate(-8px, -8px) rotate(-5deg); filter: hue-rotate(90deg); }
-            50% { transform: translate(8px, -8px) rotate(5deg); filter: hue-rotate(180deg); }
-            75% { transform: translate(-8px, 8px) rotate(-3deg); filter: hue-rotate(270deg); }
-            100% { transform: translate(0px, 0px) rotate(0deg); filter: hue-rotate(360deg); }
+        /* INTENSE SHAKE ANIMATION */
+        @keyframes shake {
+            0% { transform: translate(4px, 4px) rotate(0deg); }
+            25% { transform: translate(-4px, -4px) rotate(-2.5deg); }
+            50% { transform: translate(4px, -4px) rotate(2.5deg); }
+            75% { transform: translate(-4px, 4px) rotate(-1.5deg); }
+            100% { transform: translate(0px, 0px) rotate(0deg); }
         }
-        .madness-active { animation: ultra-shake 0.05s infinite !important; background: red !important; }
-        
-        /* THE WHITEOUT */
-        .whiteout-overlay { position: fixed; inset: 0; background: white; z-index: 9999; opacity: 0; pointer-events: none; transition: opacity 0.1s ease-in; }
-        .whiteout-active { opacity: 1; pointer-events: all; }
+        .vibrate-active { animation: shake 0.08s infinite; }
 
         .login-card { border-radius: 3rem; padding: 3rem; width: 100%; max-width: 420px; text-align: center; z-index: 20; }
         .bottom-watermark { position: absolute; bottom: 1.5rem; width: 100%; text-align: center; z-index: 30; pointer-events: none; }
+        input { outline: none !important; }
     </style>
 </head>
 <body class="transition-colors duration-300">
@@ -41,38 +38,24 @@
             const [messages, setMessages] = useState([]);
             const [input, setInput] = useState('');
             const [loading, setLoading] = useState(false);
+            const [showSettings, setShowSettings] = useState(false);
             const [isDarkMode, setIsDarkMode] = useState(true);
             const [activeModel, setActiveModel] = useState('llama-3.3-70b-versatile');
-            
-            // Madness State
-            const [spamCount, setSpamCount] = useState(0);
-            const [isMad, setIsMad] = useState(false);
-            const [isWhiteout, setIsWhiteout] = useState(false);
+            const [isVibrating, setIsVibrating] = useState(false);
+            const endRef = useRef(null);
 
-            useEffect(() => {
-                if (spamCount >= 5) {
-                    setIsMad(true);
-                    speak("System overload six seven six seven", 1.5, 2);
-                    
-                    // Trigger Whiteout after 2 seconds of madness
-                    setTimeout(() => {
-                        setIsWhiteout(true);
-                        // Reset everything after the flash
-                        setTimeout(() => {
-                            setIsWhiteout(false);
-                            setIsMad(false);
-                            setSpamCount(0);
-                            setMessages([]);
-                        }, 1000);
-                    }, 2000);
-                }
-            }, [spamCount]);
+            useEffect(() => { endRef.current?.scrollIntoView({ behavior: 'smooth' }); }, [messages]);
 
+            // Speech Function
             const speak = (text, pitch = 1, rate = 1) => {
-                window.speechSynthesis.cancel();
-                const msg = new SpeechSynthesisUtterance(text);
-                msg.pitch = pitch; msg.rate = rate; msg.volume = 1;
-                window.speechSynthesis.speak(msg);
+                if ('speechSynthesis' in window) {
+                    window.speechSynthesis.cancel();
+                    const utterance = new SpeechSynthesisUtterance(text);
+                    utterance.pitch = pitch;
+                    utterance.rate = rate;
+                    utterance.volume = 1.0;
+                    window.speechSynthesis.speak(utterance);
+                }
             };
 
             const onChat = async () => {
@@ -80,60 +63,102 @@
                 const userMsg = input.trim();
                 const normalized = userMsg.replace(/\s+/g, '').toLowerCase();
 
+                // TRIGGER 1: 67 (SAYING SIX SEVEN)
                 if (normalized === '67') {
-                    setSpamCount(prev => prev + 1);
-                    speak("6 7", 1.2, 1);
-                } else if (normalized === '10+9=21') {
+                    setIsVibrating(true);
+                    speak("6 7", 1.2, 0.9); // Space between digits forces individual pronunciation
+                    setTimeout(() => setIsVibrating(false), 800);
+                } 
+                
+                // TRIGGER 2: 10+9=21
+                if (normalized === '10+9=21') {
+                    setIsVibrating(true);
                     speak("You dumb", 0.5, 1);
-                } else {
-                    setSpamCount(0); // Reset spam if they type something else
+                    setTimeout(() => setIsVibrating(false), 1200);
                 }
 
                 setMessages(prev => [...prev, { role: 'user', content: userMsg }]);
                 setInput('');
-                // ... (Groq API logic remains same as before)
+                setLoading(true);
+
+                try {
+                    const res = await fetch('https://api.groq.com/openai/v1/chat/completions', {
+                        method: 'POST',
+                        headers: { 'Authorization': `Bearer ${apiKey}`, 'Content-Type': 'application/json' },
+                        body: JSON.stringify({ model: activeModel, messages: [...messages, { role: 'user', content: userMsg }] })
+                    });
+                    const data = await res.json();
+                    setMessages(prev => [...prev, { role: 'assistant', content: data.choices[0].message.content }]);
+                } catch(e) { alert("API Error"); } finally { setLoading(false); }
             };
+
+            const handleLogin = () => {
+                if (apiKey.startsWith('gsk_')) {
+                    speak("", 1); // Priming audio system
+                    setView('chat');
+                } else {
+                    alert('Invalid Key');
+                }
+            };
+
+            const themeClass = isDarkMode ? "bg-slate-950 text-white" : "bg-slate-50 text-slate-900";
+            const cardClass = isDarkMode ? "bg-slate-900 border-slate-800 shadow-2xl" : "bg-white border-slate-200 shadow-xl";
 
             if (view === 'login') {
                 return (
-                    <div className={`relative h-full flex items-center justify-center p-6 ${isDarkMode ? 'bg-slate-950' : 'bg-slate-50'}`}>
-                        <div className={`login-card border ${isDarkMode ? 'bg-slate-900 border-slate-800' : 'bg-white border-slate-200 shadow-xl'}`}>
+                    <div className={`relative h-full flex items-center justify-center p-6 transition-colors duration-300 ${themeClass}`}>
+                        <div className={`login-card border ${cardClass}`}>
                             <h1 className="text-4xl font-black mb-1 tracking-tighter uppercase">Universal AI</h1>
-                            <input type="password" placeholder="Enter API Key" className="w-full p-4 rounded-2xl mb-4 text-center bg-slate-800 text-white" value={apiKey} onChange={(e) => setApiKey(e.target.value)} />
-                            <button onClick={() => {speak("", 1); setView('chat')}} className="w-full bg-blue-600 text-white font-black py-4 rounded-2xl">START SYSTEM</button>
+                            <p className="text-blue-500 text-[10px] font-bold uppercase tracking-[0.3em] mb-8">Intelligence Suite</p>
+                            
+                            <div className="mb-6">
+                                <a href="https://console.groq.com/keys" target="_blank" className="block w-full py-3 rounded-xl bg-blue-600/10 border border-blue-600/30 text-blue-500 font-black uppercase text-[11px] tracking-widest">Get Groq API Key</a>
+                            </div>
+
+                            <input type="password" placeholder="Enter API Key" className={`w-full p-4 rounded-2xl mb-4 text-center text-sm font-bold border focus:border-blue-500 transition-all ${isDarkMode ? 'bg-slate-800 border-slate-700' : 'bg-slate-100 border-slate-300'}`} value={apiKey} onChange={(e) => setApiKey(e.target.value)} />
+                            <button onClick={handleLogin} className="w-full bg-blue-600 text-white font-black uppercase py-4 rounded-2xl shadow-xl active:scale-95 transition-all">START SYSTEM</button>
+                        </div>
+                        <div className="bottom-watermark">
+                            <p className="text-blue-500 font-black uppercase tracking-[0.4em] text-[12px] opacity-80">Powered by Gemini & Groq</p>
                         </div>
                     </div>
                 );
             }
 
             return (
-                <div className={`flex flex-col h-full transition-all duration-75 ${isDarkMode ? 'bg-slate-950 text-white' : 'bg-slate-50 text-slate-900'} ${isMad ? 'madness-active' : ''}`}>
-                    <div className={`whiteout-overlay ${isWhiteout ? 'whiteout-active' : ''}`} />
-                    
-                    <header className="p-4 border-b border-slate-800 flex justify-between">
-                        <span className="text-blue-500 font-black uppercase text-sm">Universal AI</span>
+                <div className={`flex flex-col h-full transition-colors duration-300 ${themeClass} ${isVibrating ? 'vibrate-active' : ''}`}>
+                    <header className={`p-4 border-b flex justify-between items-center z-50 ${isDarkMode ? 'bg-slate-900 border-slate-800' : 'bg-white border-slate-200'}`}>
+                        <span className="text-blue-500 font-black tracking-tighter uppercase text-sm">Universal AI</span>
+                        <button onClick={() => setShowSettings(!showSettings)} className="p-2 text-blue-500">
+                            <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5"><circle cx="12" cy="12" r="3"/><path d="M19.4 15a1.65 1.65 0 0 0 .33 1.82l.06.06a2 2 0 0 1 0 2.83 2 2 0 0 1-2.83 0l-.06-.06a1.65 1.65 0 0 0-1.82-.33 1.65 1.65 0 0 0-1 1.51V21a2 2 0 0 1-2 2 2 2 0 0 1-2-2v-.09A1.65 1.65 0 0 0 9 19.4a1.65 1.65 0 0 0-1.82.33l-.06.06a2 2 0 0 1-2.83 0 2 2 0 0 1 0-2.83l.06-.06a1.65 1.65 0 0 0 .33-1.82 1.65 1.65 0 0 0-1.51-1H3a2 2 0 0 1-2-2 2 2 0 0 1 2-2h.09A1.65 1.65 0 0 0 4.6 9a1.65 1.65 0 0 0-.33-1.82l-.06-.06a2 2 0 0 1 0-2.83 2 2 0 0 1 2.83 0l.06.06a1.65 1.65 0 0 0 1.82.33H9a1.65 1.65 0 0 0 1-1.51V3a2 2 0 0 1 2-2 2 2 0 0 1 2 2v.09a1.65 1.65 0 0 0 1 1.51 1.65 1.65 0 0 0 1.82-.33l.06-.06a2 2 0 0 1 2.83 0 2 2 0 0 1 0 2.83l-.06.06a1.65 1.65 0 0 0-.33 1.82V9a1.65 1.65 0 0 0 1.51 1H21a2 2 0 0 1 2 2 2 2 0 0 1-2 2h-.09a1.65 1.65 0 0 0-1.51 1z"/></svg>
+                        </button>
                     </header>
 
-                    <div className="flex-1 overflow-y-auto p-4 space-y-6 pb-28">
+                    {showSettings && (
+                        <div className={`absolute top-16 right-4 w-64 border rounded-[2rem] shadow-2xl p-6 z-[100] ${isDarkMode ? 'bg-slate-900 border-slate-800' : 'bg-white border-slate-200'}`}>
+                            <p className="text-[10px] font-black uppercase opacity-40 mb-3 tracking-widest">Settings</p>
+                            <button onClick={() => {setIsDarkMode(!isDarkMode); setShowSettings(false)}} className="w-full bg-blue-600 text-white p-3 rounded-xl text-xs font-black uppercase mb-4">Toggle Theme</button>
+                            <button onClick={() => {setView('login'); setApiKey(''); setShowSettings(false)}} className="w-full text-red-500 text-[10px] font-black uppercase text-center">Logout</button>
+                        </div>
+                    )}
+
+                    <div className="flex-1 overflow-y-auto p-4 space-y-6 pb-28" onClick={() => setShowSettings(false)}>
                         {messages.map((m, i) => (
                             <div key={i} className={`flex ${m.role === 'user' ? 'justify-end' : 'justify-start'}`}>
-                                <div className={`max-w-[85%] p-4 rounded-2xl text-sm ${m.role === 'user' ? 'bg-blue-600' : 'bg-slate-900 border border-slate-800'}`}>
-                                    {m.content}
+                                <div className={`max-w-[85%] p-4 rounded-2xl text-sm leading-relaxed ${m.role === 'user' ? 'bg-blue-600 text-white shadow-lg' : (isDarkMode ? 'bg-slate-900 border border-slate-800 text-slate-100 shadow-sm' : 'bg-white border border-slate-200 text-slate-900 shadow-sm')}`}>
+                                    {m.content.replace(/\*/g, '')}
                                 </div>
                             </div>
                         ))}
+                        <div ref={endRef} />
                     </div>
 
-                    <footer className="p-4 fixed bottom-0 w-full backdrop-blur-md">
+                    <footer className={`p-4 border-t pb-10 fixed bottom-0 w-full backdrop-blur-md ${isDarkMode ? 'bg-slate-950/80 border-slate-800' : 'bg-slate-50/80 border-slate-200'}`}>
                         <div className="flex gap-2 max-w-3xl mx-auto">
-                            <input className="flex-1 p-4 rounded-xl bg-slate-900 border border-slate-800 text-white" value={input} onChange={(e) => setInput(e.target.value)} onKeyPress={(e) => e.key === 'Enter' && onChat()} />
-                            <button onClick={onChat} className="bg-blue-600 px-6 rounded-xl font-black text-white">Send</button>
+                            <input className={`flex-1 p-4 rounded-xl border text-sm transition-all ${isDarkMode ? 'bg-slate-900 border-slate-800 text-white focus:border-blue-500' : 'bg-white border-slate-300 focus:border-blue-500'}`} placeholder="Enter trigger..." value={input} onChange={(e) => setInput(e.target.value)} onKeyPress={(e) => e.key === 'Enter' && onChat()} />
+                            <button onClick={onChat} className="bg-blue-600 px-6 rounded-xl font-black uppercase text-[11px] text-white active:scale-95 transition-all">Send</button>
                         </div>
                     </footer>
-                    
-                    <div className="bottom-watermark">
-                        <p className="text-blue-500 font-black uppercase tracking-[0.4em] text-[12px] opacity-80">Powered by Gemini & Groq</p>
-                    </div>
                 </div>
             );
         }

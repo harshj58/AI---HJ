@@ -3,21 +3,23 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
-    <title>Haya AI Systems</title>
+    <title>Universal AI</title>
     <script src="https://cdn.tailwindcss.com"></script>
     <script src="https://unpkg.com/react@18/umd/react.production.min.js"></script>
     <script src="https://unpkg.com/react-dom@18/umd/react-dom.production.min.js"></script>
     <script src="https://unpkg.com/@babel/standalone/babel.min.js"></script>
     <style>
-        body { transition: background 0.3s, color 0.3s; overflow: hidden; font-family: ui-sans-serif, system-ui; }
-        .glass { backdrop-filter: blur(15px); border: 1px solid rgba(128, 128, 128, 0.2); border-radius: 1.5rem; }
+        body { transition: background 0.4s, color 0.4s; overflow: hidden; font-family: ui-sans-serif, system-ui; }
+        .glass { backdrop-filter: blur(20px); border: 1px solid rgba(128, 128, 128, 0.15); border-radius: 1.5rem; }
+        .dark { background: #010409; color: white; }
+        .light { background: #f4f7f9; color: #1a1a1a; }
+        .dark .card { background: rgba(13, 17, 23, 0.9); }
+        .light .card { background: rgba(255, 255, 255, 0.8); }
         .scrollbar-hide::-webkit-scrollbar { display: none; }
         @keyframes shake { 0% {transform: translate(1px,1px);} 50% {transform: translate(-1px,-1px);} 100% {transform: translate(0,0);} }
         .vibrate { animation: shake 0.1s infinite; }
-        .dark { background: #010409; color: white; }
-        .light { background: #f0f2f5; color: #1a1a1a; }
-        .dark .card { background: rgba(13, 17, 23, 0.95); }
-        .light .card { background: rgba(255, 255, 255, 0.9); }
+        .app-card { transition: 0.3s; cursor: pointer; }
+        .app-card:hover { transform: translateY(-5px); border-color: #3b82f6; }
     </style>
 </head>
 <body>
@@ -32,8 +34,8 @@
             const [key, setKey] = useState('');
             const [input, setInput] = useState('');
             const [msgs, setMsgs] = useState([]);
-            const [vib, setVib] = useState(false);
             const [loading, setLoading] = useState(false);
+            const [vib, setVib] = useState(false);
             const scrollRef = useRef(null);
 
             useEffect(() => {
@@ -42,102 +44,118 @@
 
             const handleAuth = (val) => {
                 if (val === 'haya@99') {
-                    const _obf = "Z3NrX1NBdDh6eXZoQUl5eEZIdmVYNmFIV0dyeWIzRllDRnNPWVNGR0NWN0o3TTdDbTNlWTB3Sk0=";
-                    setKey(window.atob(_obf));
+                    // Hidden Base64 Key
+                    const _0x77 = "Z3NrX1NBdDh6eXZoQUl5eEZIdmVYNmFIV0dyeWIzRllDRnNPWVNGR0NWN0o3TTdDbTNlWTB3Sk0=";
+                    setKey(window.atob(_0x77));
                     setView('chat');
-                    setMsgs([{ role: 'assistant', content: 'AI Systems Online. Mode: ' + mode.toUpperCase() }]);
+                    setMsgs([{ role: 'assistant', content: 'Universal AI Online. Systems Nominal.' }]);
                 } else if (val.startsWith('gsk_')) {
                     setKey(val);
                     setView('chat');
-                    setMsgs([{ role: 'assistant', content: 'Custom API Key Active.' }]);
                 } else {
-                    alert("Invalid Code or API Key");
+                    alert("Unauthorized Access");
                 }
             };
 
-            const callGroq = async () => {
+            const logout = () => {
+                setKey('');
+                setView('auth');
+                setMsgs([]);
+            };
+
+            const callAI = async () => {
                 if(!input.trim() || loading) return;
-                const userMsg = input;
+                const m = input;
                 setInput('');
 
-                if(userMsg === '67') { 
-                    setVib(true); 
-                    window.speechSynthesis.speak(new SpeechSynthesisUtterance("6 7"));
-                    setTimeout(() => setVib(false), 800);
-                }
+                if(m === '67') { setVib(true); window.speechSynthesis.speak(new SpeechSynthesisUtterance("6 7")); setTimeout(() => setVib(false), 800); }
+                if(m === '10+9=21') { setVib(true); const s = new SpeechSynthesisUtterance("You dumb"); s.pitch = 0.5; window.speechSynthesis.speak(s); setTimeout(() => setVib(false), 1000); }
 
-                setMsgs(prev => [...prev, {role: 'user', content: userMsg}]);
+                setMsgs(prev => [...prev, {role: 'user', content: m}]);
                 setLoading(true);
 
                 try {
-                    const sysPrompt = mode === 'medical' 
-                        ? "You are Med-AI, a diagnostic assistant. Plain text only. No asterisks. No markdown." 
-                        : "You are Haya's Universal AI. Sharp and witty. Plain text only. No asterisks. No markdown.";
+                    const prompt = mode === 'medical' 
+                        ? "You are Med-AI (Medical Expert). Plain text only. No asterisks. No markdown." 
+                        : "You are Universal AI (General Expert). Sharp, witty, fast. Plain text only. No asterisks. No markdown.";
 
                     const response = await fetch('https://api.groq.com/openai/v1/chat/completions', {
                         method: 'POST',
                         headers: { 'Authorization': `Bearer ${key}`, 'Content-Type': 'application/json' },
                         body: JSON.stringify({ 
                             model: "llama-3.3-70b-versatile", 
-                            messages: [{role: "system", content: sysPrompt}, ...msgs.slice(-4), {role: 'user', content: userMsg}]
+                            messages: [{role: "system", content: prompt}, ...msgs.slice(-4), {role: 'user', content: m}]
                         })
                     });
                     const data = await response.json();
                     let reply = data.choices[0].message.content.replace(/\*/g, '');
                     setMsgs(prev => [...prev, {role: 'assistant', content: reply}]);
                 } catch (e) {
-                    setMsgs(prev => [...prev, {role: 'assistant', content: "Connection error."}]);
+                    setMsgs(prev => [...prev, {role: 'assistant', content: "Sync Error. Check key."}]);
                 }
                 setLoading(false);
             };
 
             if (view === 'auth') return (
                 <div className={`h-screen flex items-center justify-center p-6 ${isDark ? 'dark' : 'light'}`}>
-                    <div className="glass card p-10 w-full max-w-sm text-center">
-                        <h1 className="text-3xl font-black mb-8 tracking-tighter">AI ACCESS</h1>
+                    <div className="glass card p-10 w-full max-w-sm text-center border-blue-500/20 shadow-2xl">
+                        <h1 className="text-3xl font-black mb-8 tracking-tighter italic text-blue-500 uppercase">Universal AI</h1>
                         <input 
                             type="text" 
-                            placeholder="Enter Code or API Key" 
-                            className="w-full p-4 bg-transparent rounded-xl mb-4 text-center border border-gray-500 outline-none focus:border-blue-500"
+                            placeholder="Enter Security Code / Key" 
+                            className="w-full p-4 bg-transparent rounded-xl mb-4 text-center border border-gray-600 outline-none focus:border-blue-500 transition-all"
                             onKeyPress={e => e.key === 'Enter' && handleAuth(e.target.value)}
                         />
-                        <button onClick={() => handleAuth(document.querySelector('input').value)} className="w-full bg-blue-600 text-white p-4 rounded-xl font-bold mb-6">BOOT SYSTEM</button>
-                        <a href="https://console.groq.com/keys" target="_blank" className="text-[10px] uppercase font-bold text-blue-500 hover:underline">Get your Groq API Key here</a>
+                        <button onClick={() => handleAuth(document.querySelector('input').value)} className="w-full bg-blue-600 text-white p-4 rounded-xl font-bold mb-6 hover:bg-blue-500 transition-all">INITIALIZE</button>
+                        <a href="https://console.groq.com/keys" target="_blank" className="text-[9px] uppercase font-bold tracking-widest opacity-50 hover:opacity-100 transition-opacity">Request API Access</a>
                     </div>
                 </div>
             );
 
             return (
-                <div className={`h-screen flex flex-col p-2 ${isDark ? 'dark' : 'light'} ${vib ? 'vibrate' : ''}`}>
-                    <div className="glass card p-4 mb-2 flex justify-between items-center">
-                        <div className="flex gap-2">
-                            <button onClick={() => setMode('universal')} className={`px-4 py-1 rounded-full text-[10px] font-black uppercase ${mode === 'universal' ? 'bg-blue-600 text-white' : 'opacity-50'}`}>Universal</button>
-                            <button onClick={() => setMode('medical')} className={`px-4 py-1 rounded-full text-[10px] font-black uppercase ${mode === 'medical' ? 'bg-red-600 text-white' : 'opacity-50'}`}>Medical</button>
+                <div className={`h-screen flex flex-col p-4 ${isDark ? 'dark' : 'light'} ${vib ? 'vibrate' : ''}`}>
+                    {/* UI Header: Fixed as Universal AI */}
+                    <header className="glass card p-4 mb-4 flex justify-between items-center border-blue-500/20">
+                        <div className="flex flex-col">
+                            <h1 className="text-lg font-black tracking-tighter uppercase italic text-blue-500">Universal AI</h1>
+                            <div className="flex gap-2 mt-1">
+                                <div className={`h-1.5 w-6 rounded-full ${mode === 'universal' ? 'bg-blue-500' : 'bg-gray-600 cursor-pointer'}`} onClick={()=>setMode('universal')}></div>
+                                <div className={`h-1.5 w-6 rounded-full ${mode === 'medical' ? 'bg-red-500' : 'bg-gray-600 cursor-pointer'}`} onClick={()=>setMode('medical')}></div>
+                            </div>
                         </div>
-                        <button onClick={() => setIsDark(!isDark)} className="p-2 rounded-full border border-gray-500 text-xs">
-                            {isDark ? '☀️' : '🌙'}
-                        </button>
-                    </div>
+                        <div className="flex gap-3">
+                            <button onClick={() => setIsDark(!isDark)} className="w-10 h-10 rounded-xl glass card flex items-center justify-center text-sm border-white/5">{isDark ? '☀️' : '🌙'}</button>
+                            <button onClick={logout} className="px-4 h-10 rounded-xl glass card flex items-center justify-center text-[10px] font-black uppercase text-red-500 border-red-500/20">Log Out</button>
+                        </div>
+                    </header>
 
-                    <div className="flex-1 glass card overflow-hidden flex flex-col m-1">
-                        <div ref={scrollRef} className="flex-1 overflow-y-auto p-4 space-y-4 text-sm scrollbar-hide">
+                    {/* Chat Main Window (Old UI Style) */}
+                    <div className="flex-1 glass card overflow-hidden flex flex-col border-white/5 shadow-2xl">
+                        <div ref={scrollRef} className="flex-1 overflow-y-auto p-6 space-y-6 text-sm scrollbar-hide">
                             {msgs.map((m, i) => (
-                                <div key={i} className={`p-4 rounded-2xl max-w-[85%] ${m.role === 'user' ? 'bg-blue-600 text-white ml-auto' : 'bg-gray-500/10 border border-gray-500/20'}`}>
-                                    {m.content}
+                                <div key={i} className={`flex ${m.role === 'user' ? 'justify-end' : 'justify-start'}`}>
+                                    <div className={`p-4 rounded-2xl max-w-[85%] leading-relaxed ${
+                                        m.role === 'user' 
+                                        ? 'bg-blue-600 text-white font-semibold shadow-lg' 
+                                        : 'bg-gray-500/10 border border-white/5 text-inherit'
+                                    }`}>
+                                        {m.content}
+                                    </div>
                                 </div>
                             ))}
-                            {loading && <div className="text-blue-500 animate-pulse font-bold text-xs">SYNCING...</div>}
+                            {loading && <div className="text-blue-500 font-black text-[10px] animate-pulse tracking-[0.3em] uppercase">Processing...</div>}
                         </div>
 
-                        <div className="p-4 flex gap-2">
+                        {/* Control Box */}
+                        <div className="p-4 border-t border-white/10 flex gap-2">
                             <input 
-                                className="flex-1 p-4 bg-transparent rounded-2xl border border-gray-500 outline-none focus:border-blue-500"
-                                placeholder="Consult AI..."
+                                className="flex-1 p-4 bg-transparent rounded-2xl border border-gray-600/30 outline-none focus:border-blue-500 transition-all font-medium"
+                                placeholder={mode === 'medical' ? "Medical Expert Mode..." : "Universal Expert Mode..."}
                                 value={input}
                                 onChange={e => setInput(e.target.value)}
-                                onKeyPress={e => e.key === 'Enter' && callGroq()}
+                                onKeyPress={e => e.key === 'Enter' && callAI()}
                             />
-                            <button onClick={callGroq} className="bg-blue-600 text-white px-6 rounded-2xl font-black text-xs uppercase">Send</button>
+                            <button onClick={callAI} className="bg-blue-600 text-white px-8 rounded-2xl font-black text-xs uppercase hover:bg-blue-500 active:scale-95 transition-all">Send</button>
                         </div>
                     </div>
                 </div>

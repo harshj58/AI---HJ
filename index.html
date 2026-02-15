@@ -3,19 +3,21 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
-    <title>Universal AI | Haya Edition</title>
+    <title>Haya AI Systems</title>
     <script src="https://cdn.tailwindcss.com"></script>
     <script src="https://unpkg.com/react@18/umd/react.production.min.js"></script>
     <script src="https://unpkg.com/react-dom@18/umd/react-dom.production.min.js"></script>
     <script src="https://unpkg.com/@babel/standalone/babel.min.js"></script>
     <style>
-        body { background: #010409; color: white; font-family: ui-sans-serif, system-ui; overflow: hidden; }
-        .glass { background: rgba(13, 17, 23, 0.95); border: 1px solid #30363d; border-radius: 1.5rem; }
+        body { transition: background 0.3s, color 0.3s; overflow: hidden; font-family: ui-sans-serif, system-ui; }
+        .glass { backdrop-filter: blur(15px); border: 1px solid rgba(128, 128, 128, 0.2); border-radius: 1.5rem; }
         .scrollbar-hide::-webkit-scrollbar { display: none; }
         @keyframes shake { 0% {transform: translate(1px,1px);} 50% {transform: translate(-1px,-1px);} 100% {transform: translate(0,0);} }
         .vibrate { animation: shake 0.1s infinite; }
-        .ai-message { border-bottom-left-radius: 2px; }
-        .user-message { border-bottom-right-radius: 2px; }
+        .dark { background: #010409; color: white; }
+        .light { background: #f0f2f5; color: #1a1a1a; }
+        .dark .card { background: rgba(13, 17, 23, 0.95); }
+        .light .card { background: rgba(255, 255, 255, 0.9); }
     </style>
 </head>
 <body>
@@ -24,10 +26,12 @@
         const { useState, useEffect, useRef } = React;
 
         const App = () => {
-            const [isLocked, setIsLocked] = useState(true);
+            const [view, setView] = useState('auth');
+            const [isDark, setIsDark] = useState(true);
+            const [mode, setMode] = useState('universal');
             const [key, setKey] = useState('');
             const [input, setInput] = useState('');
-            const [msgs, setMsgs] = useState([{ role: 'assistant', content: 'SYSTEM STANDBY. PROVIDE ACCESS CODE.' }]);
+            const [msgs, setMsgs] = useState([]);
             const [vib, setVib] = useState(false);
             const [loading, setLoading] = useState(false);
             const scrollRef = useRef(null);
@@ -36,143 +40,105 @@
                 if (scrollRef.current) scrollRef.current.scrollTop = scrollRef.current.scrollHeight;
             }, [msgs]);
 
-            const handleAction = async () => {
-                const val = input.trim();
-                if (!val) return;
-
-                // 1. OBFUSCATED LOGIN (Hides Key in Code)
-                if (isLocked && val === 'haya@99') {
-                    // This is your Base64 encoded Groq Key
-                    const _0x4a2 = "Z3NrX1NBdDh6eXZoQUl5eEZIdmVYNmFIV0dyeWIzRllDRnNPWVNGR0NWN0o3TTdDbTNlWTB3Sk0=";
-                    setKey(window.atob(_0x4a2));
-                    setIsLocked(false);
-                    setMsgs([{ role: 'assistant', content: 'Universal AI Unlocked. Greetings, Haya.' }]);
-                    setInput('');
-                    return;
+            const handleAuth = (val) => {
+                if (val === 'haya@99') {
+                    const _obf = "Z3NrX1NBdDh6eXZoQUl5eEZIdmVYNmFIV0dyeWIzRllDRnNPWVNGR0NWN0o3TTdDbTNlWTB3Sk0=";
+                    setKey(window.atob(_obf));
+                    setView('chat');
+                    setMsgs([{ role: 'assistant', content: 'AI Systems Online. Mode: ' + mode.toUpperCase() }]);
+                } else if (val.startsWith('gsk_')) {
+                    setKey(val);
+                    setView('chat');
+                    setMsgs([{ role: 'assistant', content: 'Custom API Key Active.' }]);
+                } else {
+                    alert("Invalid Code or API Key");
                 }
+            };
 
-                if (isLocked) {
-                    setMsgs([...msgs, { role: 'user', content: val }, { role: 'assistant', content: 'ACCESS DENIED.' }]);
-                    setInput('');
-                    return;
-                }
-
-                const userMsg = val;
+            const callGroq = async () => {
+                if(!input.trim() || loading) return;
+                const userMsg = input;
                 setInput('');
 
-                // 2. SECRET TRIGGERS
-                if (userMsg === '67') {
-                    setVib(true);
-                    const m = new SpeechSynthesisUtterance("6 7");
-                    window.speechSynthesis.speak(m);
+                if(userMsg === '67') { 
+                    setVib(true); 
+                    window.speechSynthesis.speak(new SpeechSynthesisUtterance("6 7"));
                     setTimeout(() => setVib(false), 800);
                 }
-                if (userMsg === '10+9=21') {
-                    setVib(true);
-                    const m = new SpeechSynthesisUtterance("You dumb");
-                    m.pitch = 0.5;
-                    window.speechSynthesis.speak(m);
-                    setTimeout(() => setVib(false), 1000);
-                }
 
-                setMsgs(prev => [...prev, { role: 'user', content: userMsg }]);
+                setMsgs(prev => [...prev, {role: 'user', content: userMsg}]);
                 setLoading(true);
 
-                // 3. SECURE API CALL WITH NO-MARKDOWN PROTOCOL
                 try {
+                    const sysPrompt = mode === 'medical' 
+                        ? "You are Med-AI, a diagnostic assistant. Plain text only. No asterisks. No markdown." 
+                        : "You are Haya's Universal AI. Sharp and witty. Plain text only. No asterisks. No markdown.";
+
                     const response = await fetch('https://api.groq.com/openai/v1/chat/completions', {
                         method: 'POST',
-                        headers: {
-                            'Authorization': `Bearer ${key}`,
-                            'Content-Type': 'application/json'
-                        },
-                        body: JSON.stringify({
-                            model: "llama-3.3-70b-versatile",
-                            messages: [
-                                {
-                                    role: "system",
-                                    content: "You are Haya's Universal AI. Respond in clean, plain text. NEVER use asterisks (*), bolding (**), or markdown. No roleplay actions. Just raw, sharp text."
-                                },
-                                ...msgs.slice(-5),
-                                { role: 'user', content: userMsg }
-                            ]
+                        headers: { 'Authorization': `Bearer ${key}`, 'Content-Type': 'application/json' },
+                        body: JSON.stringify({ 
+                            model: "llama-3.3-70b-versatile", 
+                            messages: [{role: "system", content: sysPrompt}, ...msgs.slice(-4), {role: 'user', content: userMsg}]
                         })
                     });
-
                     const data = await response.json();
-                    let reply = data.choices[0].message.content;
-
-                    // 4. ASTERISK STRIPPER (Redundant Protection)
-                    reply = reply.replace(/\*/g, '');
-
-                    setMsgs(prev => [...prev, { role: 'assistant', content: reply }]);
+                    let reply = data.choices[0].message.content.replace(/\*/g, '');
+                    setMsgs(prev => [...prev, {role: 'assistant', content: reply}]);
                 } catch (e) {
-                    setMsgs(prev => [...prev, { role: 'assistant', content: "CORE SYNC ERROR. CHECK KEY STATUS." }]);
+                    setMsgs(prev => [...prev, {role: 'assistant', content: "Connection error."}]);
                 }
                 setLoading(false);
             };
 
+            if (view === 'auth') return (
+                <div className={`h-screen flex items-center justify-center p-6 ${isDark ? 'dark' : 'light'}`}>
+                    <div className="glass card p-10 w-full max-w-sm text-center">
+                        <h1 className="text-3xl font-black mb-8 tracking-tighter">AI ACCESS</h1>
+                        <input 
+                            type="text" 
+                            placeholder="Enter Code or API Key" 
+                            className="w-full p-4 bg-transparent rounded-xl mb-4 text-center border border-gray-500 outline-none focus:border-blue-500"
+                            onKeyPress={e => e.key === 'Enter' && handleAuth(e.target.value)}
+                        />
+                        <button onClick={() => handleAuth(document.querySelector('input').value)} className="w-full bg-blue-600 text-white p-4 rounded-xl font-bold mb-6">BOOT SYSTEM</button>
+                        <a href="https://console.groq.com/keys" target="_blank" className="text-[10px] uppercase font-bold text-blue-500 hover:underline">Get your Groq API Key here</a>
+                    </div>
+                </div>
+            );
+
             return (
-                <div className={`h-screen flex flex-col p-4 bg-[#010409] ${vib ? 'vibrate' : ''}`}>
-                    {/* Header */}
-                    <div className="glass p-5 mb-4 flex justify-between items-center border-[#30363d]">
-                        <div className="flex flex-col">
-                            <h1 className="text-xl font-black italic tracking-tighter text-blue-500">UNIVERSAL AI</h1>
-                            <span className="text-[8px] font-bold tracking-[0.3em] opacity-50 uppercase">Secure Logic v4.0</span>
+                <div className={`h-screen flex flex-col p-2 ${isDark ? 'dark' : 'light'} ${vib ? 'vibrate' : ''}`}>
+                    <div className="glass card p-4 mb-2 flex justify-between items-center">
+                        <div className="flex gap-2">
+                            <button onClick={() => setMode('universal')} className={`px-4 py-1 rounded-full text-[10px] font-black uppercase ${mode === 'universal' ? 'bg-blue-600 text-white' : 'opacity-50'}`}>Universal</button>
+                            <button onClick={() => setMode('medical')} className={`px-4 py-1 rounded-full text-[10px] font-black uppercase ${mode === 'medical' ? 'bg-red-600 text-white' : 'opacity-50'}`}>Medical</button>
                         </div>
-                        <div className={`flex items-center gap-2 px-3 py-1 rounded-full border ${isLocked ? 'border-red-500/50' : 'border-emerald-500/50'}`}>
-                            <div className={`h-2 w-2 rounded-full ${isLocked ? 'bg-red-500' : 'bg-emerald-500 animate-pulse'}`}></div>
-                            <span className="text-[9px] font-black uppercase tracking-widest">{isLocked ? 'Locked' : 'Online'}</span>
-                        </div>
+                        <button onClick={() => setIsDark(!isDark)} className="p-2 rounded-full border border-gray-500 text-xs">
+                            {isDark ? '☀️' : '🌙'}
+                        </button>
                     </div>
 
-                    {/* Chat Window */}
-                    <div className="flex-1 glass overflow-hidden flex flex-col mb-4 border-[#30363d]">
-                        <div ref={scrollRef} className="flex-1 overflow-y-auto p-5 space-y-6 text-sm scrollbar-hide">
+                    <div className="flex-1 glass card overflow-hidden flex flex-col m-1">
+                        <div ref={scrollRef} className="flex-1 overflow-y-auto p-4 space-y-4 text-sm scrollbar-hide">
                             {msgs.map((m, i) => (
-                                <div key={i} className={`flex ${m.role === 'user' ? 'justify-end' : 'justify-start'}`}>
-                                    <div className={`p-4 rounded-2xl max-w-[85%] shadow-xl leading-relaxed ${
-                                        m.role === 'user' 
-                                        ? 'bg-blue-600 text-white font-semibold user-message' 
-                                        : 'bg-[#161b22] border border-[#30363d] text-gray-200 ai-message'
-                                    }`}>
-                                        {m.content}
-                                    </div>
+                                <div key={i} className={`p-4 rounded-2xl max-w-[85%] ${m.role === 'user' ? 'bg-blue-600 text-white ml-auto' : 'bg-gray-500/10 border border-gray-500/20'}`}>
+                                    {m.content}
                                 </div>
                             ))}
-                            {loading && (
-                                <div className="flex justify-start">
-                                    <div className="bg-[#161b22] p-3 rounded-xl border border-[#30363d] text-blue-500 text-[10px] font-black tracking-widest animate-pulse uppercase">
-                                        Analyzing...
-                                    </div>
-                                </div>
-                            )}
+                            {loading && <div className="text-blue-500 animate-pulse font-bold text-xs">SYNCING...</div>}
                         </div>
 
-                        {/* Control Deck */}
-                        <div className="p-4 border-t border-[#30363d] bg-[#0d1117]/50 flex gap-2">
-                            <input
-                                className="flex-1 p-4 bg-[#010409] rounded-xl border border-[#30363d] outline-none focus:border-blue-500 text-white transition-all placeholder:text-gray-600 font-medium"
-                                placeholder={isLocked ? "ACCESS CODE REQUIRED" : "CONSULT SYSTEM..."}
-                                type={isLocked ? "password" : "text"}
+                        <div className="p-4 flex gap-2">
+                            <input 
+                                className="flex-1 p-4 bg-transparent rounded-2xl border border-gray-500 outline-none focus:border-blue-500"
+                                placeholder="Consult AI..."
                                 value={input}
                                 onChange={e => setInput(e.target.value)}
-                                onKeyPress={e => e.key === 'Enter' && handleAction()}
+                                onKeyPress={e => e.key === 'Enter' && callGroq()}
                             />
-                            <button
-                                onClick={handleAction}
-                                className={`px-8 rounded-xl font-black text-xs uppercase transition-all active:scale-95 ${
-                                    isLocked ? 'bg-red-600 text-white' : 'bg-blue-600 text-white'
-                                }`}
-                            >
-                                {isLocked ? 'Unlock' : 'Send'}
-                            </button>
+                            <button onClick={callGroq} className="bg-blue-600 text-white px-6 rounded-2xl font-black text-xs uppercase">Send</button>
                         </div>
-                    </div>
-                    
-                    <div className="flex justify-between items-center px-2 opacity-30">
-                        <span className="text-[8px] font-black uppercase tracking-widest">Auth: Haya</span>
-                        <span className="text-[8px] font-black uppercase tracking-widest">Universal AI Engine</span>
                     </div>
                 </div>
             );

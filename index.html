@@ -2,184 +2,168 @@
 <html lang="en">
 <head>
     <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no, viewport-fit=cover">
     <title>Universal AI</title>
     <script src="https://cdn.tailwindcss.com"></script>
     <script src="https://unpkg.com/react@18/umd/react.production.min.js"></script>
     <script src="https://unpkg.com/react-dom@18/umd/react-dom.production.min.js"></script>
     <script src="https://unpkg.com/@babel/standalone/babel.min.js"></script>
     <style>
-        * { box-sizing: border-box; -webkit-tap-highlight-color: transparent; }
-        body { transition: background 0.3s; overflow: hidden; font-family: system-ui, -apple-system, sans-serif; height: 100dvh; display: flex; flex-direction: column; }
-        .dark { background: #050505; color: white; }
-        .light { background: #f4f7f9; color: #1a1a1a; }
+        html, body { height: 100%; margin: 0; padding: 0; overflow: hidden; font-family: ui-sans-serif, system-ui; }
+        #root { height: 100%; display: flex; flex-direction: column; }
         
-        /* THE CHAT BOX BORDER (ALWAYS VISIBLE) */
-        .glass-frame { 
-            backdrop-filter: blur(15px);
-            background: rgba(15, 20, 25, 0.8);
-            border: 2px solid #3b82f6; 
-            border-radius: 1.5rem;
-            display: flex;
-            flex-direction: column;
-            overflow: hidden;
-            width: 100%;
+        @keyframes shake {
+            0% { transform: translate(3px, 3px) rotate(0deg); }
+            25% { transform: translate(-3px, -3px) rotate(-1deg); }
+            50% { transform: translate(3px, -3px) rotate(1deg); }
+            75% { transform: translate(-3px, 3px) rotate(-1deg); }
+            100% { transform: translate(0px, 0px) rotate(0deg); }
         }
-        .light .glass-frame { 
-            background: rgba(255, 255, 255, 0.9);
-            border: 2px solid #1a1a1a; 
-        }
-
-        .scrollbar-hide::-webkit-scrollbar { display: none; }
-        @keyframes pulse-border { 50% { border-color: #60a5fa; } }
-        .syncing { animation: pulse-border 1.5s infinite; }
-        
-        /* Centering the Auth Screen */
-        .centered-view {
-            display: flex;
-            align-items: center;
-            justify-content: center;
-            height: 100vh;
-            width: 100vw;
-            position: fixed;
-            top: 0;
-            left: 0;
-            z-index: 50;
-        }
+        .vibrate-active { animation: shake 0.1s infinite; }
+        .login-card { border-radius: 3rem; padding: 3rem; width: 100%; max-width: 420px; text-align: center; z-index: 20; }
+        .bottom-watermark { position: absolute; bottom: 1.5rem; width: 100%; text-align: center; z-index: 30; pointer-events: none; }
+        input { outline: none !important; }
+        ::-webkit-scrollbar { display: none; }
     </style>
 </head>
-<body class="dark">
+<body class="transition-colors duration-300">
     <div id="root"></div>
     <script type="text/babel">
-        const { useState, useEffect, useRef } = React;
+        const { useState, useRef, useEffect } = React;
 
-        const App = () => {
-            const [view, setView] = useState('auth');
-            const [isDark, setIsDark] = useState(true);
-            const [model, setModel] = useState('fast'); 
-            const [key, setKey] = useState('');
+        function App() {
+            const [apiKey, setApiKey] = useState('');
+            const [view, setView] = useState('login');
+            const [messages, setMessages] = useState([]);
             const [input, setInput] = useState('');
-            const [msgs, setMsgs] = useState([]);
             const [loading, setLoading] = useState(false);
-            const scrollRef = useRef(null);
+            const [showSettings, setShowSettings] = useState(false);
+            const [isDarkMode, setIsDarkMode] = useState(true);
+            const [activeModel, setActiveModel] = useState('llama-3.3-70b-versatile');
+            const [isVibrating, setIsVibrating] = useState(false);
+            const endRef = useRef(null);
 
-            useEffect(() => { document.body.className = isDark ? 'dark' : 'light'; }, [isDark]);
-            useEffect(() => { if (scrollRef.current) scrollRef.current.scrollTop = scrollRef.current.scrollHeight; }, [msgs]);
+            useEffect(() => { endRef.current?.scrollIntoView({ behavior: 'smooth' }); }, [messages]);
 
-            const handleAuth = (val) => {
-                if (val === 'haya@99') {
-                    // gsk_... reassembled from character codes
-                    const _v = [103,115,107,95,98,51,99,78,122,106,66,88,77,120,117,71,74,101,80,73,88,102,73,121,87,71,100,121,98,51,70,89,87,88,113,80,89,54,98,119,104,55,110,111,50,56,55,84,54,86,85,85,122,80,110,112];
-                    setKey(String.fromCharCode(..._v));
-                    setView('chat');
-                } else if (val.startsWith('gsk_')) {
-                    setKey(val);
-                    setView('chat');
-                } else {
-                    alert("Unauthorized.");
+            const speak = (text, pitch = 1) => {
+                if ('speechSynthesis' in window) {
+                    window.speechSynthesis.cancel();
+                    const msg = new SpeechSynthesisUtterance(text);
+                    msg.pitch = pitch;
+                    window.speechSynthesis.speak(msg);
                 }
             };
 
-            const callAI = async () => {
+            const onChat = async () => {
                 if(!input.trim() || loading) return;
-                const userMsg = input; setInput('');
-                setMsgs(p => [...p, {role: 'user', content: userMsg}]);
+                const userMsg = input.trim();
+                const normalized = userMsg.replace(/\s+/g, '').toLowerCase();
+
+                if (normalized === '67') {
+                    setIsVibrating(true); speak("6 7", 1.2);
+                    setTimeout(() => setIsVibrating(false), 800);
+                } else if (normalized === '10+9=21') {
+                    setIsVibrating(true); speak("You dumb", 0.5);
+                    setTimeout(() => setIsVibrating(false), 1000);
+                }
+
+                const newMessages = [...messages, { role: 'user', content: userMsg }];
+                setMessages(newMessages);
+                setInput('');
                 setLoading(true);
 
                 try {
-                    const modelId = model === 'fast' ? "llama3-8b-8192" : "llama-3.3-70b-versatile";
                     const res = await fetch('https://api.groq.com/openai/v1/chat/completions', {
                         method: 'POST',
-                        headers: { 
-                            'Authorization': `Bearer ${key.trim()}`,
-                            'Content-Type': 'application/json'
-                        },
+                        headers: { 'Authorization': `Bearer ${apiKey}`, 'Content-Type': 'application/json' },
                         body: JSON.stringify({ 
-                            model: modelId, 
-                            messages: [
-                                {role: "system", content: "Respond in plain text only. Never use asterisks or markdown bolding."},
-                                ...msgs.slice(-3),
-                                {role: 'user', content: userMsg}
-                            ]
+                            model: activeModel, 
+                            messages: newMessages.slice(-10), // Keeps last 10 messages to prevent "roast battle" crashes
+                            temperature: 0.8
                         })
                     });
-
-                    if (!res.ok) throw new Error();
-
                     const data = await res.json();
-                    const reply = data.choices[0].message.content.replace(/\*/g, '');
-                    setMsgs(p => [...p, {role: 'assistant', content: reply}]);
-                } catch (e) {
-                    setMsgs(p => [...p, {role: 'assistant', content: "CONNECTION ERROR: Check your browser network settings or API key status."}]);
-                }
-                setLoading(false);
+                    if(data.choices) {
+                        setMessages(prev => [...prev, { role: 'assistant', content: data.choices[0].message.content }]);
+                    } else {
+                        throw new Error();
+                    }
+                } catch(e) { 
+                    setMessages(prev => [...prev, { role: 'assistant', content: "⚠️ System Error: Please check your API key in Settings." }]);
+                } finally { setLoading(false); }
             };
 
-            if (view === 'auth') return (
-                <div className="centered-view bg-[#050505]">
-                    <div className="bg-[#0d1117] border-2 border-blue-600 p-8 md:p-12 rounded-[2.5rem] w-[90%] max-w-sm text-center shadow-[0_0_50px_rgba(37,99,235,0.2)]">
-                        <h1 className="text-3xl font-black text-white mb-1 tracking-tighter uppercase italic">Universal AI</h1>
-                        <p className="text-[10px] text-blue-500 font-bold mb-10 tracking-[0.3em] uppercase">Intelligence Suite</p>
-                        
-                        <a href="https://console.groq.com/keys" target="_blank" className="block w-full py-4 mb-4 rounded-xl bg-[#161b22] text-[#3b82f6] text-xs font-bold uppercase tracking-widest border border-white/5 hover:bg-[#1c2128] transition-all">
-                            Get Groq API Key
-                        </a>
+            const handleStart = () => {
+                if (!apiKey.trim().startsWith('gsk_')) {
+                    alert("Please enter a valid Groq API Key first!");
+                    return;
+                }
+                speak("", 1);
+                setView('chat');
+            };
 
-                        <input 
-                            type="text" 
-                            placeholder="Enter Code or Key" 
-                            className="w-full p-4 bg-black border border-white/10 rounded-xl text-white text-center mb-4 text-xs outline-none focus:border-blue-500"
-                            onKeyPress={e => e.key === 'Enter' && handleAuth(e.target.value)}
-                        />
-                        <button onClick={() => handleAuth(document.querySelector('input').value)} className="w-full bg-blue-600 text-white py-4 rounded-xl font-black text-xs uppercase tracking-widest active:scale-95 transition-all shadow-lg shadow-blue-900/40">Start System</button>
+            const themeClass = isDarkMode ? "bg-slate-950 text-white" : "bg-slate-50 text-slate-900";
+            const cardClass = isDarkMode ? "bg-slate-900 border-slate-800 shadow-2xl" : "bg-white border-slate-200 shadow-xl";
+
+            if (view === 'login') {
+                return (
+                    <div className={`relative h-full flex items-center justify-center p-6 transition-colors duration-300 ${themeClass}`}>
+                        <div className={`login-card border ${cardClass}`}>
+                            <h1 className="text-4xl font-black mb-1 tracking-tighter uppercase">Universal AI</h1>
+                            <p className="text-blue-500 text-[10px] font-bold uppercase tracking-[0.3em] mb-8">Intelligence Suite</p>
+                            <div className="mb-6">
+                                <a href="https://console.groq.com/keys" target="_blank" className="block w-full py-3 rounded-xl bg-blue-600/10 border border-blue-600/30 text-blue-500 font-black uppercase text-[11px] tracking-widest transition-all">Get Groq API Key</a>
+                            </div>
+                            <input type="password" placeholder="Enter API Key" className={`w-full p-4 rounded-2xl mb-4 text-center text-sm font-bold border ${isDarkMode ? 'bg-slate-800 border-slate-700 text-white' : 'bg-slate-100 border-slate-300 text-slate-900'}`} value={apiKey} onChange={(e) => setApiKey(e.target.value)} />
+                            <button onClick={handleStart} className="w-full bg-blue-600 text-white font-black uppercase py-4 rounded-2xl shadow-xl active:scale-95 transition-all">START SYSTEM</button>
+                        </div>
+                        <div className="bottom-watermark"><p className="text-blue-500 font-black uppercase tracking-[0.4em] text-[12px] opacity-80">Powered by Gemini & Groq</p></div>
                     </div>
-                </div>
-            );
+                );
+            }
 
             return (
-                <div className="h-full flex flex-col p-4 md:p-6 max-w-5xl mx-auto w-full">
-                    <header className="flex justify-between items-center mb-4 px-2">
-                        <div>
-                            <h2 className="text-sm font-black text-blue-500 uppercase tracking-widest">Universal AI</h2>
-                            <div className="flex gap-4 mt-2">
-                                <button onClick={()=>setModel('fast')} className={`text-[10px] font-bold uppercase tracking-widest ${model==='fast'?'text-white':'text-gray-500'}`}>Llama(Fast)</button>
-                                <button onClick={()=>setModel('expert')} className={`text-[10px] font-bold uppercase tracking-widest ${model==='expert'?'text-white':'text-gray-500'}`}>Llama(Expert)</button>
-                            </div>
-                        </div>
-                        <div className="flex gap-2">
-                            <button onClick={()=>setIsDark(!isDark)} className="w-10 h-10 rounded-xl glass-frame flex items-center justify-center border-none text-lg">{isDark?'☀️':'🌙'}</button>
-                            <button onClick={()=>setView('auth')} className="px-4 h-10 rounded-xl glass-frame flex items-center justify-center border-none text-[9px] font-black text-red-500 uppercase">Log out</button>
-                        </div>
+                <div className={`flex flex-col h-full transition-colors duration-300 ${themeClass} ${isVibrating ? 'vibrate-active' : ''}`}>
+                    <header className={`p-4 border-b flex justify-between items-center z-50 backdrop-blur-md ${isDarkMode ? 'bg-slate-900/50 border-slate-800' : 'bg-white/50 border-slate-200'}`}>
+                        <span className="text-blue-500 font-black uppercase tracking-tighter text-sm">Universal AI</span>
+                        <button onClick={() => setShowSettings(!showSettings)} className="p-2 text-blue-500">
+                            <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5"><circle cx="12" cy="12" r="3"/><path d="M19.4 15a1.65 1.65 0 0 0 .33 1.82l.06.06a2 2 0 0 1 0 2.83 2 2 0 0 1-2.83 0l-.06-.06a1.65 1.65 0 0 0-1.82-.33 1.65 1.65 0 0 0-1 1.51V21a2 2 0 0 1-2 2 2 2 0 0 1-2-2v-.09A1.65 1.65 0 0 0 9 19.4a1.65 1.65 0 0 0-1.82.33l-.06.06a2 2 0 0 1-2.83 0 2 2 0 0 1 0-2.83l.06-.06a1.65 1.65 0 0 0 .33-1.82 1.65 1.65 0 0 0-1.51-1H3a2 2 0 0 1-2-2 2 2 0 0 1 2-2h.09A1.65 1.65 0 0 0 4.6 9a1.65 1.65 0 0 0-.33-1.82l-.06-.06a2 2 0 0 1 0-2.83 2 2 0 0 1 2.83 0l.06.06a1.65 1.65 0 0 0 1.82.33H9a1.65 1.65 0 0 0 1-1.51V3a2 2 0 0 1 2-2 2 2 0 0 1 2 2v.09a1.65 1.65 0 0 0 1 1.51 1.65 1.65 0 0 0 1.82-.33l.06-.06a2 2 0 0 1 2.83 0 2 2 0 0 1 0 2.83l-.06.06a1.65 1.65 0 0 0-.33 1.82V9a1.65 1.65 0 0 0 1.51 1H21a2 2 0 0 1 2 2 2 2 0 0 1-2 2h-.09a1.65 1.65 0 0 0-1.51 1z"/></svg>
+                        </button>
                     </header>
 
-                    <div className={`flex-1 glass-frame ${loading ? 'syncing' : ''}`}>
-                        <div ref={scrollRef} className="flex-1 overflow-y-auto p-4 md:p-8 space-y-6 scrollbar-hide">
-                            {msgs.map((m, i) => (
-                                <div key={i} className={`flex ${m.role === 'user' ? 'justify-end' : 'justify-start'}`}>
-                                    <div className={`p-4 rounded-2xl max-w-[85%] text-sm md:text-base leading-relaxed ${
-                                        m.role === 'user' ? 'bg-blue-600 text-white' : (isDark ? 'bg-white/5' : 'bg-white shadow-md border border-black/5')
-                                    }`}>
-                                        {m.content}
-                                    </div>
-                                </div>
-                            ))}
+                    {showSettings && (
+                        <div className={`absolute top-16 right-4 w-64 border rounded-[2rem] shadow-2xl p-6 z-[100] backdrop-blur-xl ${isDarkMode ? 'bg-slate-900/90 border-slate-800' : 'bg-white/90 border-slate-200'}`}>
+                            <p className="text-[10px] font-black uppercase opacity-40 mb-3 tracking-widest">Model Selection</p>
+                            <div className="space-y-2 mb-6">
+                                <button onClick={() => {setActiveModel('llama-3.3-70b-versatile'); setShowSettings(false)}} className={`w-full text-left p-3 rounded-xl text-xs font-bold border transition-all ${activeModel.includes('70b') ? 'border-blue-500 bg-blue-500/10 text-blue-500' : 'border-transparent opacity-60'}`}>Llama 3.3 Expert</button>
+                                <button onClick={() => {setActiveModel('llama3-8b-8192'); setShowSettings(false)}} className={`w-full text-left p-3 rounded-xl text-xs font-bold border transition-all ${activeModel.includes('8b') ? 'border-blue-500 bg-blue-500/10 text-blue-500' : 'border-transparent opacity-60'}`}>Llama 3 Fast</button>
+                            </div>
+                            <button onClick={() => {setIsDarkMode(!isDarkMode); setShowSettings(false)}} className="w-full bg-blue-600 text-white p-3 rounded-xl text-xs font-black uppercase mb-3">Toggle Theme</button>
+                            <button onClick={() => {setView('login'); setApiKey(''); setMessages([]); setShowSettings(false)}} className="w-full text-red-500 text-[10px] font-black uppercase text-center py-2">Terminate Session</button>
                         </div>
+                    )}
 
-                        <div className="p-3 md:p-4 border-t border-blue-500/20 flex gap-2 bg-transparent">
-                            <input 
-                                className="flex-1 p-3 md:p-4 bg-transparent outline-none text-sm placeholder:opacity-30"
-                                placeholder={`Using Llama ${model.toUpperCase()}...`}
-                                value={input}
-                                onChange={e => setInput(e.target.value)}
-                                onKeyPress={e => e.key === 'Enter' && callAI()}
-                            />
-                            <button onClick={callAI} className="bg-blue-600 text-white px-6 md:px-10 rounded-xl font-black text-[10px] uppercase active:scale-95">Send</button>
-                        </div>
+                    <div className="flex-1 overflow-y-auto p-4 space-y-6 pb-28" onClick={() => setShowSettings(false)}>
+                        {messages.map((m, i) => (
+                            <div key={i} className={`flex ${m.role === 'user' ? 'justify-end' : 'justify-start'}`}>
+                                <div className={`max-w-[85%] p-4 rounded-2xl text-sm leading-relaxed shadow-sm ${m.role === 'user' ? 'bg-blue-600 text-white' : (isDarkMode ? 'bg-slate-900 border border-slate-800 text-slate-100' : 'bg-white border border-slate-200 text-slate-900')}`}>
+                                    {m.content}
+                                </div>
+                            </div>
+                        ))}
+                        {loading && <div className="text-blue-500 text-xs font-bold animate-pulse px-2 uppercase tracking-widest">System Processing...</div>}
+                        <div ref={endRef} />
                     </div>
+
+                    <footer className={`p-4 border-t pb-10 fixed bottom-0 w-full backdrop-blur-md ${isDarkMode ? 'bg-slate-950/80 border-slate-800' : 'bg-slate-50/80 border-slate-200'}`}>
+                        <div className="flex gap-2 max-w-3xl mx-auto">
+                            <input className={`flex-1 p-4 rounded-xl border text-sm transition-all ${isDarkMode ? 'bg-slate-900 border-slate-800 text-white focus:border-blue-500' : 'bg-white border-slate-300 focus:border-blue-500'}`} placeholder="Ask me anything..." value={input} onChange={(e) => setInput(e.target.value)} onKeyPress={(e) => e.key === 'Enter' && onChat()} />
+                            <button onClick={onChat} className="bg-blue-600 px-6 rounded-xl font-black uppercase text-[11px] text-white active:scale-95 transition-all">Send</button>
+                        </div>
+                    </footer>
                 </div>
             );
-        };
-
+        }
         ReactDOM.createRoot(document.getElementById('root')).render(<App />);
     </script>
 </body>

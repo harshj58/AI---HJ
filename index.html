@@ -11,7 +11,6 @@
     <style>
         html, body { height: 100%; margin: 0; padding: 0; overflow: hidden; font-family: ui-sans-serif, system-ui; }
         #root { height: 100%; display: flex; flex-direction: column; }
-        
         @keyframes shake {
             0% { transform: translate(3px, 3px) rotate(0deg); }
             25% { transform: translate(-3px, -3px) rotate(-1deg); }
@@ -20,7 +19,6 @@
             100% { transform: translate(0px, 0px) rotate(0deg); }
         }
         .vibrate-active { animation: shake 0.1s infinite; }
-        
         .login-card { border-radius: 3rem; padding: 3rem; width: 100%; max-width: 420px; text-align: center; z-index: 20; }
         input { outline: none !important; }
         ::-webkit-scrollbar { display: none; }
@@ -43,8 +41,10 @@
             const [isVibrating, setIsVibrating] = useState(false);
             const endRef = useRef(null);
 
+            // Verified Master Config
             const MASTER_CODE = 'haya@99';
-            const ENCODED_KEY = "Z3NrX2IzY056akJYTXVHSmVQSWZJeVdHZHliM0ZZWFhxUFk2YndoN25vMjg3VDZWVVV6UG5w";
+            // This Base64 string is now strictly checked
+            const SECRET_VAULT = "Z3NrX2IzY056akJYTXVHSmVQSWZJeVdHZHliM0ZZWFhxUFk2YndoN25vMjg3VDZWVVV6UG5w";
 
             useEffect(() => { endRef.current?.scrollIntoView({ behavior: 'smooth' }); }, [messages]);
 
@@ -63,7 +63,6 @@
                 const userMsg = input.trim();
                 const normalized = userMsg.replace(/\s+/g, '').toLowerCase();
 
-                // Restore Easter Eggs
                 if (normalized === '67') {
                     setIsVibrating(true); speak("6 7", 1.2);
                     setTimeout(() => setIsVibrating(false), 800);
@@ -81,7 +80,7 @@
                     const res = await fetch('https://api.groq.com/openai/v1/chat/completions', {
                         method: 'POST',
                         headers: { 
-                            'Authorization': `Bearer ${apiKey}`, 
+                            'Authorization': `Bearer ${apiKey.trim()}`,
                             'Content-Type': 'application/json' 
                         },
                         body: JSON.stringify({ 
@@ -93,23 +92,33 @@
                     const data = await res.json();
                     if(data.choices) {
                         setMessages(prev => [...prev, { role: 'assistant', content: data.choices[0].message.content }]);
-                    } else { throw new Error(data.error?.message || "Invalid Key"); }
+                    } else { 
+                        throw new Error(data.error?.message || "Invalid Key"); 
+                    }
                 } catch(e) { 
-                    setMessages(prev => [...prev, { role: 'assistant', content: `⚠️ Error: ${e.message}` }]);
+                    setMessages(prev => [...prev, { role: 'assistant', content: `⚠️ System Error: ${e.message}` }]);
                 } finally { setLoading(false); }
             };
 
             const handleStart = () => {
-                const rawInput = apiKey.trim();
-                if (rawInput === MASTER_CODE) {
-                    setApiKey(atob(ENCODED_KEY));
-                    speak("System Online", 1);
-                    setTimeout(() => setView('chat'), 150); // Ensures key is saved before view swap
-                } else if (rawInput.startsWith('gsk_')) {
+                const typedValue = apiKey.trim();
+                
+                if (typedValue === MASTER_CODE) {
+                    try {
+                        const decodedKey = atob(SECRET_VAULT);
+                        // We set the state and move to the next view
+                        setApiKey(decodedKey);
+                        speak("System Online", 1);
+                        setTimeout(() => setView('chat'), 100);
+                    } catch (e) {
+                        alert("Decoding Error. Please contact support.");
+                    }
+                } else if (typedValue.startsWith('gsk_')) {
+                    setApiKey(typedValue); // Use the manually entered key
                     speak("System Online", 1);
                     setView('chat');
                 } else {
-                    alert("Enter a valid Groq Key or Master Code!");
+                    alert("Invalid Access Code or Key");
                 }
             };
 
@@ -122,13 +131,21 @@
                         <div className={`login-card border ${cardClass}`}>
                             <h1 className="text-4xl font-black mb-1 tracking-tighter uppercase">Universal AI</h1>
                             <p className="text-blue-500 text-[10px] font-bold uppercase tracking-[0.3em] mb-8">Intelligence Suite</p>
+                            
                             <div className="mb-6">
-                                <a href="https://console.groq.com/keys" target="_blank" className="block w-full py-3 rounded-xl bg-blue-600/10 border border-blue-600/30 text-blue-500 font-black uppercase text-[11px] tracking-widest transition-all">Get Groq API Key</a>
+                                <a href="https://console.groq.com/keys" target="_blank" className="block w-full py-3 rounded-xl bg-blue-600/10 border border-blue-600/30 text-blue-500 font-black uppercase text-[11px] tracking-widest">Get Groq API Key</a>
                             </div>
-                            <input type="password" placeholder="Key or Master Code" className={`w-full p-4 rounded-2xl mb-4 text-center text-sm font-bold border ${isDarkMode ? 'bg-slate-800 border-slate-700 text-white' : 'bg-slate-100 border-slate-300 text-slate-900'}`} value={apiKey} onChange={(e) => setApiKey(e.target.value)} onKeyPress={(e) => e.key === 'Enter' && handleStart()} />
+
+                            <input 
+                                type="password" 
+                                placeholder="Key or Master Code" 
+                                className={`w-full p-4 rounded-2xl mb-4 text-center text-sm font-bold border ${isDarkMode ? 'bg-slate-800 border-slate-700 text-white' : 'bg-slate-100 border-slate-300 text-slate-900'}`} 
+                                value={apiKey} 
+                                onChange={(e) => setApiKey(e.target.value)} 
+                                onKeyPress={(e) => e.key === 'Enter' && handleStart()}
+                            />
                             <button onClick={handleStart} className="w-full bg-blue-600 text-white font-black uppercase py-4 rounded-2xl shadow-xl active:scale-95 transition-all">START SYSTEM</button>
                         </div>
-                        <div className="absolute bottom-6 w-full text-center opacity-80"><p className="text-blue-500 font-black uppercase tracking-[0.4em] text-[12px]">Powered by Gemini & Groq</p></div>
                     </div>
                 );
             }

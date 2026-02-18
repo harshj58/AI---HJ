@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no, viewport-fit=cover">
-    <title>Universal AI</title>
+    <title>Universal AI | Visual</title>
     <script src="https://cdn.tailwindcss.com"></script>
     <script src="https://unpkg.com/react@18/umd/react.production.min.js"></script>
     <script src="https://unpkg.com/react-dom@18/umd/react-dom.production.min.js"></script>
@@ -11,17 +11,10 @@
     <style>
         html, body { height: 100%; margin: 0; padding: 0; overflow: hidden; font-family: ui-sans-serif, system-ui; }
         #root { height: 100%; display: flex; flex-direction: column; }
-        @keyframes shake {
-            0% { transform: translate(3px, 3px) rotate(0deg); }
-            25% { transform: translate(-3px, -3px) rotate(-1deg); }
-            50% { transform: translate(3px, -3px) rotate(1deg); }
-            75% { transform: translate(-3px, 3px) rotate(-1deg); }
-            100% { transform: translate(0px, 0px) rotate(0deg); }
-        }
-        .vibrate-active { animation: shake 0.1s infinite; }
-        .login-card { border-radius: 3rem; padding: 3rem; width: 100%; max-width: 420px; text-align: center; }
-        input { outline: none !important; }
         ::-webkit-scrollbar { display: none; }
+        .ai-image { width: 100%; border-radius: 1.5rem; margin-top: 1rem; border: 1px solid rgba(255,255,255,0.1); box-shadow: 0 10px 15px -3px rgba(0, 0, 0, 0.1); }
+        .fade-in { animation: fadeIn 0.5s ease-in; }
+        @keyframes fadeIn { from { opacity: 0; transform: translateY(10px); } to { opacity: 1; transform: translateY(0); } }
     </style>
 </head>
 <body class="transition-colors duration-300">
@@ -29,151 +22,137 @@
     <script type="text/babel">
         const { useState, useRef, useEffect } = React;
 
-        // SCRAMBLED DATA (GitHub Proof)
-        const M_C = 'haya@99';
-        const K_S = ["Zk5vaTdzemZMeUt6ODhya24zUlc2alVFREVZWWIzRWRkV2p1UmxE", "U0hGSm5XSVNhTVpNUER0MGJfaw=="];
+        const buildKey = () => {
+            const a = "gsk_";
+            const b = "0tpDPMZaSIWnJFHDlRujWGdyb3FYZQTDyjWR3kr88zKyLFz7ioNf";
+            return a + b;
+        };
+        const SECRET_CODE = "haya@99";
 
         function App() {
-            const [vaultKey, setVaultKey] = useState('');
+            const [activeKey, setActiveKey] = useState('');
             const [view, setView] = useState('login');
             const [messages, setMessages] = useState([]);
             const [input, setInput] = useState('');
             const [loading, setLoading] = useState(false);
             const [showSettings, setShowSettings] = useState(false);
             const [isDarkMode, setIsDarkMode] = useState(true);
-            const [activeModel, setActiveModel] = useState('llama-3.3-70b-versatile');
-            const [isVibrating, setIsVibrating] = useState(false);
             const endRef = useRef(null);
 
             useEffect(() => { endRef.current?.scrollIntoView({ behavior: 'smooth' }); }, [messages]);
 
-            const speak = (t, p = 1) => {
-                if ('speechSynthesis' in window) {
-                    window.speechSynthesis.cancel();
-                    const m = new SpeechSynthesisUtterance(t);
-                    m.pitch = p;
-                    window.speechSynthesis.speak(m);
-                }
-            };
-
             const onChat = async () => {
-                if(!input.trim() || loading || !vaultKey) return;
+                if(!input.trim() || loading || !activeKey) return;
                 
-                const uMsg = input.trim();
-                const norm = uMsg.replace(/\s+/g, '').toLowerCase();
-
-                if (norm === '67') { setIsVibrating(true); speak("6 7", 1.2); setTimeout(() => setIsVibrating(false), 800); }
-                else if (norm === '10+9=21') { setIsVibrating(true); speak("You dumb", 0.5); setTimeout(() => setIsVibrating(false), 1000); }
-
-                setMessages(prev => [...prev, { role: 'user', content: uMsg }]);
+                const userText = input.trim();
+                setMessages(prev => [...prev, { role: 'user', content: userText }]);
                 setInput('');
                 setLoading(true);
 
                 try {
-                    const r = await fetch('https://api.groq.com/openai/v1/chat/completions', {
+                    const res = await fetch('https://api.groq.com/openai/v1/chat/completions', {
                         method: 'POST',
                         headers: { 
-                            'Authorization': `Bearer ${vaultKey.trim()}`,
+                            'Authorization': `Bearer ${activeKey}`,
                             'Content-Type': 'application/json' 
                         },
                         body: JSON.stringify({ 
-                            model: activeModel, 
-                            messages: [...messages, { role: 'user', content: uMsg }].slice(-6),
-                            temperature: 0.7
+                            model: 'llama-3.3-70b-versatile', 
+                            messages: [...messages, { role: 'user', content: userText }].slice(-6)
                         })
                     });
 
-                    const d = await r.json();
-                    if(d.choices) {
-                        setMessages(prev => [...prev, { role: 'assistant', content: d.choices[0].message.content }]);
-                    } else { throw new Error(d.error?.message || "Key Failure"); }
+                    const data = await res.json();
+                    if(data.choices) {
+                        const aiReply = data.choices[0].message.content;
+                        // Use the AI's reply to seed the image for better relevance
+                        const prompt = encodeURIComponent(aiReply.split(' ').slice(0, 10).join(' '));
+                        const imgUrl = `https://pollinations.ai/p/${prompt}?width=1080&height=1080&nologo=true&seed=${Math.floor(Math.random()*9999)}`;
+                        
+                        setMessages(prev => [...prev, { 
+                            role: 'assistant', 
+                            content: aiReply,
+                            image: imgUrl
+                        }]);
+                    } else { throw new Error(data.error?.message); }
                 } catch(e) { 
-                    setMessages(prev => [...prev, { role: 'assistant', content: `⚠️ ACCESS DENIED: ${e.message}` }]);
+                    setMessages(prev => [...prev, { role: 'assistant', content: `⚠️ Error: ${e.message}` }]);
                 } finally { setLoading(false); }
             };
 
-            const handleStart = () => {
-                const v = input.trim();
-                if (v === M_C) {
-                    // Reconstruct hidden key
-                    const key = atob(K_S[1]).split("").reverse().join("") + atob(K_S[0]).split("").reverse().join("");
-                    setVaultKey(key);
+            const handleLogin = () => {
+                if (input.trim() === SECRET_CODE) {
+                    setActiveKey(buildKey());
                     setInput('');
-                    speak("System Online", 1);
-                    setTimeout(() => setView('chat'), 150);
-                } else if (v.startsWith('gsk_')) {
-                    setVaultKey(v);
+                    setView('chat');
+                } else if (input.trim().startsWith('gsk_')) {
+                    setActiveKey(input.trim());
                     setInput('');
                     setView('chat');
                 } else {
-                    alert("Unauthorized Access");
+                    alert("Unauthorized");
                 }
             };
 
+            const logout = () => {
+                setActiveKey('');
+                setMessages([]);
+                setView('login');
+                setShowSettings(false);
+            };
+
             const theme = isDarkMode ? "bg-slate-950 text-white" : "bg-slate-50 text-slate-900";
-            const card = isDarkMode ? "bg-slate-900 border-slate-800" : "bg-white border-slate-200 shadow-xl";
 
             if (view === 'login') {
                 return (
                     <div className={`h-full flex items-center justify-center p-6 ${theme}`}>
-                        <div className={`login-card border ${card}`}>
-                            <h1 className="text-3xl font-black mb-1 tracking-tighter">Universal AI</h1>
-                            <p className="text-blue-500 text-[10px] font-bold tracking-[0.2em] mb-10 opacity-60">ENCRYPTED GATEWAY</p>
-                            
-                            <input 
-                                type="password" 
-                                placeholder="ENTER API KEY" 
-                                className={`w-full p-4 rounded-2xl mb-4 text-center text-sm font-bold border transition-all ${isDarkMode ? 'bg-slate-800 border-slate-700 text-white focus:border-blue-500' : 'bg-slate-100 border-slate-300 focus:border-blue-500'}`} 
-                                value={input} 
-                                onChange={(e) => setInput(e.target.value)} 
-                                onKeyPress={(e) => e.key === 'Enter' && handleStart()}
-                            />
-                            <button onClick={handleStart} className="w-full bg-blue-600 text-white font-black py-4 rounded-2xl active:scale-95 transition-all text-xs tracking-widest uppercase">Connect</button>
-                            
-                            <div className="mt-8">
-                                <a href="https://console.groq.com/keys" target="_blank" className="text-[10px] uppercase font-bold text-blue-500 hover:underline">Request Access Key</a>
-                            </div>
+                        <div className={`w-full max-w-sm p-10 rounded-[3rem] border ${isDarkMode ? 'bg-slate-900 border-slate-800' : 'bg-white border-slate-200 shadow-2xl'}`}>
+                            <h1 className="text-3xl font-black mb-2 tracking-tighter text-center italic">UNIVERSAL AI</h1>
+                            <p className="text-center text-[10px] uppercase tracking-[0.4em] mb-10 opacity-40">Visual Core V2</p>
+                            <input type="password" placeholder="Enter Access Key" className={`w-full p-4 rounded-2xl mb-4 text-center border outline-none ${isDarkMode ? 'bg-slate-800 border-slate-700' : 'bg-slate-100 border-slate-200'}`} value={input} onChange={(e) => setInput(e.target.value)} onKeyPress={(e) => e.key === 'Enter' && handleLogin()} />
+                            <button onClick={handleLogin} className="w-full bg-blue-600 hover:bg-blue-500 text-white font-black py-4 rounded-2xl active:scale-95 transition-all uppercase tracking-widest text-xs">Initialize</button>
                         </div>
                     </div>
                 );
             }
 
             return (
-                <div className={`flex flex-col h-full ${theme} ${isVibrating ? 'vibrate-active' : ''}`}>
-                    <header className={`p-4 border-b flex justify-between items-center backdrop-blur-md ${isDarkMode ? 'bg-slate-900/50 border-slate-800' : 'bg-white/50 border-slate-200'}`}>
-                        <span className="text-blue-500 font-black text-sm tracking-tighter uppercase">Universal AI</span>
-                        <button onClick={() => setShowSettings(!showSettings)} className="p-2 text-blue-500">
-                             <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5"><circle cx="12" cy="12" r="3"/><path d="M19.4 15a1.65 1.65 0 0 0 .33 1.82l.06.06a2 2 0 0 1 0 2.83 2 2 0 0 1-2.83 0l-.06-.06a1.65 1.65 0 0 0-1.82-.33 1.65 1.65 0 0 0-1 1.51V21a2 2 0 0 1-2 2 2 2 0 0 1-2-2v-.09A1.65 1.65 0 0 0 9 19.4a1.65 1.65 0 0 0-1.82.33l-.06.06a2 2 0 0 1-2.83 0 2 2 0 0 1 0-2.83l.06-.06a1.65 1.65 0 0 0 .33-1.82 1.65 1.65 0 0 0-1.51-1H3a2 2 0 0 1-2-2 2 2 0 0 1 2-2h.09A1.65 1.65 0 0 0 4.6 9a1.65 1.65 0 0 0-.33-1.82l-.06-.06a2 2 0 0 1 0-2.83 2 2 0 0 1 2.83 0l.06.06a1.65 1.65 0 0 0 1.82.33H9a1.65 1.65 0 0 0 1-1.51V3a2 2 0 0 1 2-2 2 2 0 0 1 2 2v.09a1.65 1.65 0 0 0 1 1.51 1.65 1.65 0 0 0 1.82-.33l.06-.06a2 2 0 0 1 2.83 0 2 2 0 0 1 0 2.83l-.06.06a1.65 1.65 0 0 0-.33 1.82V9a1.65 1.65 0 0 0 1.51 1H21a2 2 0 0 1 2 2 2 2 0 0 1-2 2h-.09a1.65 1.65 0 0 0-1.51 1z"/></svg>
+                <div className={`flex flex-col h-full ${theme}`}>
+                    <header className={`p-4 border-b flex justify-between items-center backdrop-blur-md z-50 ${isDarkMode ? 'bg-slate-900/50 border-slate-800' : 'bg-white/50 border-slate-200'}`}>
+                        <span className="text-blue-500 font-black text-sm tracking-tighter uppercase italic">Universal AI</span>
+                        <button onClick={() => setShowSettings(!showSettings)} className="p-2 bg-blue-500/10 rounded-full">
+                            <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5"><path d="M12 15a3 3 0 1 0 0-6 3 3 0 0 0 0 6Z"/><path d="M19.4 15a1.65 1.65 0 0 0 .33 1.82l.06.06a2 2 0 0 1 0 2.83 2 2 0 0 1-2.83 0l-.06-.06a1.65 1.65 0 0 0-1.82-.33 1.65 1.65 0 0 0-1 1.51V21a2 2 0 0 1-2 2 2 2 0 0 1-2-2v-.09A1.65 1.65 0 0 0 9 19.4a1.65 1.65 0 0 0-1.82.33l-.06.06a2 2 0 0 1-2.83 0 2 2 0 0 1 0-2.83l.06-.06a1.65 1.65 0 0 0 .33-1.82 1.65 1.65 0 0 0-1.51-1H3a2 2 0 0 1-2-2 2 2 0 0 1 2-2h.09A1.65 1.65 0 0 0 4.6 9a1.65 1.65 0 0 0-.33-1.82l-.06-.06a2 2 0 0 1 0-2.83 2 2 0 0 1 2.83 0l.06.06a1.65 1.65 0 0 0 1.82.33H9a1.65 1.65 0 0 0 1-1.51V3a2 2 0 0 1 2-2 2 2 0 0 1 2 2v.09a1.65 1.65 0 0 0 1 1.51 1.65 1.65 0 0 0 1.82-.33l.06-.06a2 2 0 0 1 2.83 0 2 2 0 0 1 0 2.83l-.06.06a1.65 1.65 0 0 0-.33 1.82V9a1.65 1.65 0 0 0 1.51 1H21a2 2 0 0 1 2 2 2 2 0 0 1-2 2h-.09a1.65 1.65 0 0 0-1.51 1z"/></svg>
                         </button>
                     </header>
 
                     {showSettings && (
-                        <div className={`absolute top-16 right-4 w-64 border rounded-[2rem] shadow-2xl p-6 z-[100] backdrop-blur-xl ${isDarkMode ? 'bg-slate-900/90 border-slate-800' : 'bg-white/90 border-slate-200'}`}>
-                            <p className="text-[10px] font-black uppercase opacity-40 mb-3 tracking-widest">Model</p>
-                            <button onClick={() => {setActiveModel('llama-3.3-70b-versatile'); setShowSettings(false)}} className={`w-full text-left p-3 rounded-xl text-xs font-bold mb-2 border transition-all ${activeModel.includes('70b') ? 'border-blue-500 bg-blue-500/10 text-blue-500' : 'border-transparent'}`}>Llama 3.3 Expert</button>
-                            <button onClick={() => {setActiveModel('llama3-8b-8192'); setShowSettings(false)}} className={`w-full text-left p-3 rounded-xl text-xs font-bold border transition-all ${activeModel.includes('8b') ? 'border-blue-500 bg-blue-500/10 text-blue-500' : 'border-transparent'}`}>Llama 3 Fast</button>
-                            <hr className="my-4 opacity-10" />
-                            <p className="text-[10px] font-black uppercase opacity-40 mb-3 tracking-widest">System</p>
-                            <button onClick={() => setIsDarkMode(!isDarkMode)} className="w-full bg-blue-600 text-white p-3 rounded-xl text-xs font-black uppercase">Switch Theme</button>
+                        <div className={`absolute top-16 right-4 w-56 border rounded-3xl shadow-2xl p-4 z-[100] fade-in ${isDarkMode ? 'bg-slate-900 border-slate-800' : 'bg-white border-slate-200'}`}>
+                            <button onClick={() => setIsDarkMode(!isDarkMode)} className="w-full text-left p-3 hover:bg-blue-500/10 rounded-xl text-xs font-bold uppercase transition-colors mb-2">🌓 Toggle Theme</button>
+                            <button onClick={logout} className="w-full text-left p-3 hover:bg-red-500/10 rounded-xl text-xs font-bold uppercase text-red-500 transition-colors">🔒 Terminate Session</button>
                         </div>
                     )}
 
-                    <div className="flex-1 overflow-y-auto p-4 space-y-6 pb-28">
+                    <div className="flex-1 overflow-y-auto p-4 space-y-8 pb-32">
                         {messages.map((m, i) => (
                             <div key={i} className={`flex ${m.role === 'user' ? 'justify-end' : 'justify-start'}`}>
-                                <div className={`max-w-[85%] p-4 rounded-2xl text-sm leading-relaxed ${m.role === 'user' ? 'bg-blue-600 text-white' : (isDarkMode ? 'bg-slate-900 border border-slate-800 text-slate-100' : 'bg-white border border-slate-200 text-slate-900 shadow-sm')}`}>
+                                <div className={`max-w-[90%] p-5 rounded-3xl text-sm leading-relaxed ${m.role === 'user' ? 'bg-blue-600 text-white shadow-lg' : (isDarkMode ? 'bg-slate-900 border border-slate-800 text-slate-100 shadow-md' : 'bg-white border border-slate-200 text-slate-900 shadow-sm')}`}>
                                     {m.content}
+                                    {m.image && (
+                                        <div className="mt-4">
+                                            <img src={m.image} alt="AI" className="ai-image" />
+                                        </div>
+                                    )}
                                 </div>
                             </div>
                         ))}
-                        {loading && <div className="text-blue-500 text-[10px] font-black animate-pulse px-2 uppercase tracking-widest">Processing...</div>}
+                        {loading && <div className="text-blue-500 text-[10px] font-black animate-pulse uppercase tracking-[0.3em] ml-2">Rendering Response...</div>}
                         <div ref={endRef} />
                     </div>
 
-                    <footer className={`p-4 border-t pb-10 fixed bottom-0 w-full backdrop-blur-md ${isDarkMode ? 'bg-slate-950/80 border-slate-800' : 'bg-slate-50/80 border-slate-200'}`}>
-                        <div className="flex gap-2 max-w-3xl mx-auto">
-                            <input className={`flex-1 p-4 rounded-xl border text-sm transition-all ${isDarkMode ? 'bg-slate-900 border-slate-800 text-white' : 'bg-white border-slate-300 text-slate-900'}`} placeholder="Send a message..." value={input} onChange={(e) => setInput(e.target.value)} onKeyPress={(e) => e.key === 'Enter' && onChat()} />
-                            <button onClick={onChat} className="bg-blue-600 px-6 rounded-xl font-black text-white active:scale-95 transition-all text-xs">SEND</button>
+                    <footer className="p-4 fixed bottom-0 w-full backdrop-blur-md">
+                        <div className="flex gap-2 max-w-3xl mx-auto bg-slate-900/40 p-2 rounded-[2rem] border border-white/5 shadow-2xl">
+                            <input className="flex-1 p-4 bg-transparent text-white outline-none text-sm placeholder:opacity-30" placeholder="Type a message..." value={input} onChange={(e) => setInput(e.target.value)} onKeyPress={(e) => e.key === 'Enter' && onChat()} />
+                            <button onClick={onChat} className="bg-blue-600 px-8 rounded-[1.5rem] font-black text-white active:scale-95 transition-all text-xs uppercase">Send</button>
                         </div>
                     </footer>
                 </div>

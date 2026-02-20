@@ -72,7 +72,7 @@
                         body: JSON.stringify({ 
                             model: activeModel, 
                             messages: [
-                                { role: 'system', content: "You are Gemini, an advanced AI. Your tone is helpful, encouraging, and clear. IMPORTANT: Always format code using Markdown code blocks (```python) and ensure proper indentation. Use bullet points for steps. Never send one long paragraph of code." },
+                                { role: 'system', content: "You are Gemini. Helpful, clear, and encouraging. Always format code in blocks with proper indentation. Use bullet points." },
                                 ...newMessages.slice(-10)
                             ] 
                         })
@@ -99,10 +99,9 @@
             if (view === 'login') {
                 return (
                     <div className={`h-full flex items-center justify-center p-6 ${theme}`}>
-                        <div className={`w-full max-w-sm p-10 rounded-[3rem] border ${isDarkMode ? 'bg-slate-900 border-slate-800 shadow-2xl' : 'bg-white border-slate-200 shadow-xl'}`}>
+                        <div className={`w-full max-sm:max-w-xs max-w-sm p-10 rounded-[3rem] border ${isDarkMode ? 'bg-slate-900 border-slate-800 shadow-2xl' : 'bg-white border-slate-200 shadow-xl'}`}>
                             <h1 className="text-3xl font-black mb-2 tracking-tighter text-center italic uppercase">Universal AI</h1>
-                            <p className="text-center text-[10px] font-bold text-blue-500 tracking-[0.3em] mb-8 uppercase opacity-60">Powered by Gemini Logic</p>
-                            <a href="[https://console.groq.com/keys](https://console.groq.com/keys)" target="_blank" className="block w-full py-3 rounded-xl bg-blue-600/10 border border-blue-600/30 text-blue-500 font-black uppercase text-[10px] text-center tracking-widest mb-6 transition-all hover:bg-blue-600/20">Manage Groq Key</a>
+                            <button onClick={() => window.open('https://console.groq.com/keys', '_blank')} className="block w-full py-3 rounded-xl bg-blue-600/10 border border-blue-600/30 text-blue-500 font-black uppercase text-[10px] text-center tracking-widest mb-6">Manage Groq Key</button>
                             <input type="password" placeholder="Access Key" className={`w-full p-4 rounded-2xl mb-4 text-center border outline-none font-bold ${isDarkMode ? 'bg-slate-800 border-slate-700 text-white' : 'bg-slate-100 border-slate-200'}`} value={input} onChange={(e) => setInput(e.target.value)} onKeyPress={(e) => e.key === 'Enter' && handleLogin()} />
                             <button onClick={handleLogin} className="w-full bg-blue-600 text-white font-black py-4 rounded-2xl active:scale-95 transition-all text-xs uppercase tracking-widest">Initialize</button>
                         </div>
@@ -121,10 +120,10 @@
 
                     {showSettings && (
                         <div className={`absolute top-16 right-4 w-60 border rounded-3xl shadow-2xl p-5 z-[100] fade-in ${isDarkMode ? 'bg-slate-900 border-slate-800' : 'bg-white border-slate-200'}`}>
-                            <button onClick={() => {setActiveModel('llama-3.3-70b-versatile'); setShowSettings(false)}} className={`w-full text-left p-3 rounded-xl text-xs font-bold mb-2 border ${activeModel.includes('70b') ? 'border-blue-500 bg-blue-500/10 text-blue-500' : 'border-transparent opacity-60'}`}>Llama 3.3 Expert</button>
-                            <button onClick={() => {setActiveModel('llama-3.1-8b-instant'); setShowSettings(false)}} className={`w-full text-left p-3 rounded-xl text-xs font-bold border ${activeModel.includes('8b') ? 'border-blue-500 bg-blue-500/10 text-blue-500' : 'border-transparent opacity-60'}`}>Llama 3.1 Fast</button>
+                            <button onClick={() => {setActiveModel('llama-3.3-70b-versatile'); setShowSettings(false)}} className={`w-full text-left p-3 rounded-xl text-xs font-bold mb-2 border ${activeModel.includes('70b') ? 'border-blue-500 bg-blue-500/10 text-blue-500 shadow-sm' : 'border-transparent opacity-60'}`}>Llama 3.3 Expert</button>
+                            <button onClick={() => {setActiveModel('llama-3.1-8b-instant'); setShowSettings(false)}} className={`w-full text-left p-3 rounded-xl text-xs font-bold border ${activeModel.includes('8b') ? 'border-blue-500 bg-blue-500/10 text-blue-500 shadow-sm' : 'border-transparent opacity-60'}`}>Llama 3.1 Fast</button>
                             <hr className="my-4 opacity-10" />
-                            <a href="[https://console.groq.com/keys](https://console.groq.com/keys)" target="_blank" className="block w-full text-left p-3 hover:bg-blue-500/10 rounded-xl text-xs font-bold uppercase mb-2 text-blue-500">🛠️ Groq Console</a>
+                            <button onClick={() => { window.open('https://console.groq.com/keys', '_blank'); setShowSettings(false); }} className="w-full text-left p-3 hover:bg-blue-500/10 rounded-xl text-xs font-bold uppercase mb-2 text-blue-500 transition-colors">🛠️ Groq Console</button>
                             <button onClick={() => {setShowFeedback(true); setShowSettings(false)}} className="w-full text-left p-3 hover:bg-blue-500/10 rounded-xl text-xs font-bold uppercase mb-2">📩 Feedback</button>
                             <button onClick={() => setIsDarkMode(!isDarkMode)} className="w-full text-left p-3 hover:bg-blue-500/10 rounded-xl text-xs font-bold uppercase mb-2">🌓 Theme</button>
                             <button onClick={() => window.location.reload()} className="w-full text-left p-3 hover:bg-red-500/10 rounded-xl text-xs font-bold uppercase text-red-500">🔒 Exit</button>
@@ -135,12 +134,12 @@
                         <div className="fixed inset-0 bg-black/70 backdrop-blur-md z-[200] flex items-center justify-center p-6">
                             <div className={`w-full max-w-sm p-8 rounded-[2.5rem] border fade-in ${isDarkMode ? 'bg-slate-900 border-slate-800 shadow-2xl' : 'bg-white border-slate-200 shadow-xl'}`}>
                                 <h2 className="text-xl font-black mb-4 uppercase italic">Feedback</h2>
-                                <textarea className={`w-full p-4 rounded-2xl h-32 mb-4 outline-none border transition-colors ${isDarkMode ? 'bg-slate-800 border-slate-700 text-white focus:border-blue-500' : 'bg-slate-100 border-slate-200 focus:border-blue-500'}`} placeholder="Found a bug? Have an idea?" value={feedbackText} onChange={(e) => setFeedbackText(e.target.value)} />
+                                <textarea className={`w-full p-4 rounded-2xl h-32 mb-4 outline-none border transition-colors ${isDarkMode ? 'bg-slate-800 border-slate-700 text-white focus:border-blue-500' : 'bg-slate-100 border-slate-200 focus:border-blue-500'}`} placeholder="Bugs or ideas?" value={feedbackText} onChange={(e) => setFeedbackText(e.target.value)} />
                                 <button onClick={async () => {
                                     if(!feedbackText.trim()) return;
                                     await fetch(`https://formspree.io/f/${FORMSPREE_ID}`, { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ feedback: feedbackText }) });
                                     alert("Feedback Sent!"); setFeedbackText(''); setShowFeedback(false);
-                                }} className="w-full bg-blue-600 p-4 rounded-2xl font-bold text-xs uppercase text-white shadow-lg transition-transform active:scale-95">Send to Dev</button>
+                                }} className="w-full bg-blue-600 p-4 rounded-2xl font-bold text-xs uppercase text-white shadow-lg active:scale-95 transition-transform">Send to Dev</button>
                                 <button onClick={() => setShowFeedback(false)} className="w-full mt-2 p-2 text-[10px] font-bold opacity-50 uppercase">Cancel</button>
                             </div>
                         </div>

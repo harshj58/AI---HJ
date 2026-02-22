@@ -14,7 +14,7 @@
         #root { height: 100%; display: flex; flex-direction: column; }
         ::-webkit-scrollbar { display: none; }
         .prose pre { background: #1e293b; padding: 1rem; border-radius: 0.75rem; overflow-x: auto; margin: 10px 0; border: 1px solid #334155; }
-        .prose code { font-family: 'Courier New', monospace; color: #38bdf8; }
+        .prose code { font-family: 'Courier New', monospace; color: #38bdf8; padding: 2px 4px; border-radius: 4px; }
         @keyframes shake { 0%, 100% { transform: translate(0,0); } 25% { transform: translate(-2px,-2px); } 50% { transform: translate(2px,-2px); } 75% { transform: translate(-2px,2px); } }
         .vibrate { animation: shake 0.1s infinite; }
         .fade-in { animation: fadeIn 0.3s ease-out; }
@@ -72,7 +72,7 @@
                         body: JSON.stringify({ 
                             model: activeModel, 
                             messages: [
-                                { role: 'system', content: "You are Gemini. Helpful, clear, and encouraging. Always format code in blocks with proper indentation. Use bullet points." },
+                                { role: 'system', content: "You are a helpful AI assistant. Use clear, conversational language. ONLY use code blocks (```) if the user explicitly asks for code or technical syntax. Do not wrap regular conversation in code boxes." },
                                 ...newMessages.slice(-10)
                             ] 
                         })
@@ -101,7 +101,7 @@
                     <div className={`h-full flex items-center justify-center p-6 ${theme}`}>
                         <div className={`w-full max-sm:max-w-xs max-w-sm p-10 rounded-[3rem] border ${isDarkMode ? 'bg-slate-900 border-slate-800 shadow-2xl' : 'bg-white border-slate-200 shadow-xl'}`}>
                             <h1 className="text-3xl font-black mb-2 tracking-tighter text-center italic uppercase">Universal AI</h1>
-                            <button onClick={() => window.open('https://console.groq.com/keys', '_blank')} className="block w-full py-3 rounded-xl bg-blue-600/10 border border-blue-600/30 text-blue-500 font-black uppercase text-[10px] text-center tracking-widest mb-6">Manage Groq Key</button>
+                            <button onClick={() => window.open('[https://console.groq.com/keys](https://console.groq.com/keys)', '_blank')} className="block w-full py-3 rounded-xl bg-blue-600/10 border border-blue-600/30 text-blue-500 font-black uppercase text-[10px] text-center tracking-widest mb-6 transition-colors hover:bg-blue-600/20">Manage Groq Key</button>
                             <input type="password" placeholder="Access Key" className={`w-full p-4 rounded-2xl mb-4 text-center border outline-none font-bold ${isDarkMode ? 'bg-slate-800 border-slate-700 text-white' : 'bg-slate-100 border-slate-200'}`} value={input} onChange={(e) => setInput(e.target.value)} onKeyPress={(e) => e.key === 'Enter' && handleLogin()} />
                             <button onClick={handleLogin} className="w-full bg-blue-600 text-white font-black py-4 rounded-2xl active:scale-95 transition-all text-xs uppercase tracking-widest">Initialize</button>
                         </div>
@@ -123,7 +123,7 @@
                             <button onClick={() => {setActiveModel('llama-3.3-70b-versatile'); setShowSettings(false)}} className={`w-full text-left p-3 rounded-xl text-xs font-bold mb-2 border ${activeModel.includes('70b') ? 'border-blue-500 bg-blue-500/10 text-blue-500 shadow-sm' : 'border-transparent opacity-60'}`}>Llama 3.3 Expert</button>
                             <button onClick={() => {setActiveModel('llama-3.1-8b-instant'); setShowSettings(false)}} className={`w-full text-left p-3 rounded-xl text-xs font-bold border ${activeModel.includes('8b') ? 'border-blue-500 bg-blue-500/10 text-blue-500 shadow-sm' : 'border-transparent opacity-60'}`}>Llama 3.1 Fast</button>
                             <hr className="my-4 opacity-10" />
-                            <button onClick={() => { window.open('https://console.groq.com/keys', '_blank'); setShowSettings(false); }} className="w-full text-left p-3 hover:bg-blue-500/10 rounded-xl text-xs font-bold uppercase mb-2 text-blue-500 transition-colors">🛠️ Groq Console</button>
+                            <button onClick={() => { window.open('[https://console.groq.com/keys](https://console.groq.com/keys)', '_blank'); setShowSettings(false); }} className="w-full text-left p-3 hover:bg-blue-500/10 rounded-xl text-xs font-bold uppercase mb-2 text-blue-500 transition-colors">🛠️ Groq Console</button>
                             <button onClick={() => {setShowFeedback(true); setShowSettings(false)}} className="w-full text-left p-3 hover:bg-blue-500/10 rounded-xl text-xs font-bold uppercase mb-2">📩 Feedback</button>
                             <button onClick={() => setIsDarkMode(!isDarkMode)} className="w-full text-left p-3 hover:bg-blue-500/10 rounded-xl text-xs font-bold uppercase mb-2">🌓 Theme</button>
                             <button onClick={() => window.location.reload()} className="w-full text-left p-3 hover:bg-red-500/10 rounded-xl text-xs font-bold uppercase text-red-500">🔒 Exit</button>
@@ -149,7 +149,7 @@
                         {messages.map((m, i) => (
                             <div key={i} className={`flex ${m.role === 'user' ? 'justify-end' : 'justify-start'}`}>
                                 <div className={`max-w-[90%] p-4 rounded-2xl text-sm relative group shadow-sm ${m.role === 'user' ? 'bg-blue-600 text-white' : (isDarkMode ? 'bg-slate-900 border border-slate-800 text-slate-100' : 'bg-white border border-slate-200 text-slate-900')}`}>
-                                    <div className="prose prose-invert" dangerouslySetInnerHTML={{ __html: marked.parse(m.content) }} />
+                                    <div className="prose prose-invert break-words" dangerouslySetInnerHTML={{ __html: marked.parse(m.content) }} />
                                     {m.role === 'assistant' && (
                                         <button onClick={() => {navigator.clipboard.writeText(m.content); alert("Copied!");}} className="absolute -bottom-7 left-1 text-[9px] font-black text-blue-500 uppercase flex items-center gap-1 opacity-0 group-hover:opacity-100 transition-all">
                                             <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5"><rect x="9" y="9" width="13" height="13" rx="2" ry="2"></rect><path d="M5 15H4a2 2 0 0 1-2-2V4a2 2 0 0 1 2-2h9a2 2 0 0 1 2 2v1"></path></svg>

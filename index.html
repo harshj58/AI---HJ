@@ -15,10 +15,21 @@
         ::-webkit-scrollbar { display: none; }
         .prose pre { background: #1e293b; padding: 1rem; border-radius: 0.75rem; overflow-x: auto; margin: 10px 0; border: 1px solid #334155; }
         .prose code { font-family: 'Courier New', monospace; color: #38bdf8; padding: 2px 4px; border-radius: 4px; }
-        @keyframes shake { 0%, 100% { transform: translate(0,0); } 25% { transform: translate(-2px,-2px); } 50% { transform: translate(2px,-2px); } 75% { transform: translate(-2px,2px); } }
-        .vibrate { animation: shake 0.1s infinite; }
-        .fade-in { animation: fadeIn 0.3s ease-out; }
+        
+        /* 67 Meme Animation */
+        .meme-67 { position: fixed; top: 50%; left: 50%; transform: translate(-50%, -50%); z-index: 1000; pointer-events: none; }
+        .hand { position: absolute; width: 40px; height: 10px; background: white; border-radius: 10px; top: 50%; }
+        .hand-left { left: -50px; transform-origin: right; animation: waveLeft 0.2s infinite alternate; }
+        .hand-right { right: -50px; transform-origin: left; animation: waveRight 0.2s infinite alternate; }
+        @keyframes waveLeft { from { transform: rotate(20deg); } to { transform: rotate(-40deg); } }
+        @keyframes waveRight { from { transform: rotate(-20deg); } to { transform: rotate(40deg); } }
+        
+        /* Flash Animation */
+        .flash-text { position: fixed; inset: 0; display: flex; items-center; justify-content: center; background: rgba(255,0,0,0.8); z-index: 1001; font-size: 5rem; font-weight: 900; color: white; animation: flash 0.1s infinite; text-transform: uppercase; }
+        @keyframes flash { 0%, 100% { opacity: 1; } 50% { opacity: 0.5; } }
+        
         @keyframes fadeIn { from { opacity: 0; transform: translateY(5px); } to { opacity: 1; transform: translateY(0); } }
+        .fade-in { animation: fadeIn 0.3s ease-out; }
     </style>
 </head>
 <body class="transition-colors duration-300">
@@ -36,12 +47,16 @@
             const [messages, setMessages] = useState([]);
             const [input, setInput] = useState('');
             const [loading, setLoading] = useState(false);
-            const [isVibrating, setIsVibrating] = useState(false);
+            const [isDarkMode, setIsDarkMode] = useState(true);
             const [showSettings, setShowSettings] = useState(false);
             const [showFeedback, setShowFeedback] = useState(false);
             const [feedbackText, setFeedbackText] = useState('');
-            const [isDarkMode, setIsDarkMode] = useState(true);
             const [activeModel, setActiveModel] = useState('llama-3.3-70b-versatile');
+            
+            // Meme States
+            const [show67, setShow67] = useState(false);
+            const [showDumb, setShowDumb] = useState(false);
+            
             const endRef = useRef(null);
 
             useEffect(() => { endRef.current?.scrollIntoView({ behavior: 'smooth' }); }, [messages]);
@@ -52,17 +67,27 @@
                 window.speechSynthesis.speak(utterance);
             };
 
-            const openGroq = () => {
-                window.open('https://console.groq.com/keys', '_blank', 'noopener,noreferrer');
-            };
-
             const onChat = async () => {
-                if(!input.trim() || loading || !activeKey) return;
                 const rawInput = input.trim();
                 const cmd = rawInput.toLowerCase().replace(/\s/g, '');
 
-                if (cmd === '67') { setIsVibrating(true); speak("6 7", 1.2); setTimeout(() => setIsVibrating(false), 800); }
-                if (cmd === '10+9=21') { setIsVibrating(true); speak("You dumb", 0.5); setTimeout(() => setIsVibrating(false), 1200); }
+                if (cmd === '67') { 
+                    setShow67(true); 
+                    speak("sixty seven", 1.5); 
+                    setTimeout(() => setShow67(false), 2000); 
+                    setInput('');
+                    return;
+                }
+                
+                if (cmd === '10+9=21') { 
+                    setShowDumb(true); 
+                    speak("You dumb", 0.5); 
+                    setTimeout(() => setShowDumb(false), 1500); 
+                    setInput('');
+                    return;
+                }
+
+                if(!rawInput || loading || !activeKey) return;
 
                 const newMessages = [...messages, { role: 'user', content: rawInput }];
                 setMessages(newMessages);
@@ -76,7 +101,7 @@
                         body: JSON.stringify({ 
                             model: activeModel, 
                             messages: [
-                                { role: 'system', content: "You are a helpful AI assistant. Use clear, conversational language. ONLY use code blocks (```) if the user explicitly asks for code or technical syntax. Do not wrap regular conversation in code boxes." },
+                                { role: 'system', content: "You are Gemini. Conversational and clear. Use code blocks only when requested." },
                                 ...newMessages.slice(-10)
                             ] 
                         })
@@ -90,89 +115,56 @@
                 } finally { setLoading(false); }
             };
 
-            const handleLogin = () => {
-                const val = input.trim();
-                if (val === SECRET_CODE || val.startsWith('gsk_')) {
-                    setActiveKey(val === SECRET_CODE ? buildKey() : val);
-                    setInput(''); setView('chat');
-                } else { alert("Unauthorized"); }
-            };
-
             const theme = isDarkMode ? "bg-slate-950 text-white" : "bg-slate-50 text-slate-900";
 
             if (view === 'login') {
                 return (
                     <div className={`h-full flex items-center justify-center p-6 ${theme}`}>
-                        <div className={`w-full max-sm:max-w-xs max-w-sm p-10 rounded-[3rem] border ${isDarkMode ? 'bg-slate-900 border-slate-800 shadow-2xl' : 'bg-white border-slate-200 shadow-xl'}`}>
-                            <h1 className="text-3xl font-black mb-2 tracking-tighter text-center italic uppercase">Universal AI</h1>
-                            <button onClick={openGroq} className="block w-full py-3 rounded-xl bg-blue-600/10 border border-blue-600/30 text-blue-500 font-black uppercase text-[10px] text-center tracking-widest mb-6 transition-all hover:bg-blue-600/20 active:scale-95">Get Groq Api Key</button>
-                            <input type="password" placeholder="Access Key" className={`w-full p-4 rounded-2xl mb-4 text-center border outline-none font-bold ${isDarkMode ? 'bg-slate-800 border-slate-700 text-white' : 'bg-slate-100 border-slate-200'}`} value={input} onChange={(e) => setInput(e.target.value)} onKeyPress={(e) => e.key === 'Enter' && handleLogin()} />
-                            <button onClick={handleLogin} className="w-full bg-blue-600 text-white font-black py-4 rounded-2xl active:scale-95 transition-all text-xs uppercase tracking-widest">Initialize</button>
+                        <div className={`w-full max-sm:max-w-xs p-10 rounded-[3rem] border ${isDarkMode ? 'bg-slate-900 border-slate-800 shadow-2xl' : 'bg-white border-slate-200 shadow-xl'}`}>
+                            <h1 className="text-3xl font-black mb-8 text-center italic uppercase tracking-tighter">Universal AI</h1>
+                            <input type="password" placeholder="Access Key" className={`w-full p-4 rounded-2xl mb-4 text-center border outline-none font-bold ${isDarkMode ? 'bg-slate-800 border-slate-700' : 'bg-slate-100'}`} value={input} onChange={(e) => setInput(e.target.value)} onKeyPress={(e) => e.key === 'Enter' && (input.trim() === SECRET_CODE || input.trim().startsWith('gsk_')) && (setActiveKey(input.trim() === SECRET_CODE ? buildKey() : input.trim()), setInput(''), setView('chat'))} />
+                            <button onClick={() => (input.trim() === SECRET_CODE || input.trim().startsWith('gsk_')) ? (setActiveKey(input.trim() === SECRET_CODE ? buildKey() : input.trim()), setInput(''), setView('chat')) : alert("Denied")} className="w-full bg-blue-600 text-white font-black py-4 rounded-2xl active:scale-95 text-xs uppercase tracking-widest">Initialize</button>
                         </div>
                     </div>
                 );
             }
 
             return (
-                <div className={`flex flex-col h-full ${theme} ${isVibrating ? 'vibrate' : ''}`}>
-                    <header className={`p-4 border-b flex justify-between items-center backdrop-blur-md z-40 ${isDarkMode ? 'bg-slate-900/50 border-slate-800' : 'bg-white/50 border-slate-200'}`}>
-                        <span className="text-blue-500 font-black text-sm italic uppercase tracking-tighter">Universal AI</span>
-                        <button onClick={() => setShowSettings(!showSettings)} className="p-2 bg-blue-500/10 rounded-full active:scale-90">
-                            <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5"><circle cx="12" cy="12" r="3"/><path d="M19.4 15a1.65 1.65 0 0 0 .33 1.82l.06.06a2 2 0 0 1 0 2.83 2 2 0 0 1-2.83 0l-.06-.06a1.65 1.65 0 0 0-1.82-.33 1.65 1.65 0 0 0-1 1.51V21a2 2 0 0 1-2 2 2 2 0 0 1-2-2v-.09A1.65 1.65 0 0 0 9 19.4a1.65 1.65 0 0 0-1.82.33l-.06.06a2 2 0 0 1-2.83 0 2 2 0 0 1 0-2.83l.06-.06a1.65 1.65 0 0 0 .33-1.82 1.65 1.65 0 0 0-1.51-1H3a2 2 0 0 1-2-2 2 2 0 0 1 2-2h.09A1.65 1.65 0 0 0 4.6 9a1.65 1.65 0 0 0-.33-1.82l-.06-.06a2 2 0 0 1 0-2.83 2 2 0 0 1 2.83 0l.06.06a1.65 1.65 0 0 0 1.82.33H9a1.65 1.65 0 0 0 1-1.51V3a2 2 0 0 1 2-2 2 2 0 0 1 2 2v.09a1.65 1.65 0 0 0 1 1.51 1.65 1.65 0 0 0 1.82-.33l.06-.06a2 2 0 0 1 2.83 0 2 2 0 0 1 0 2.83l-.06.06a1.65 1.65 0 0 0-.33 1.82V9a1.65 1.65 0 0 0 1.51 1H21a2 2 0 0 1 2 2 2 2 0 0 1-2 2h-.09a1.65 1.65 0 0 0-1.51 1z"/></svg>
-                        </button>
-                    </header>
-
-                    {showSettings && (
-                        <div className={`absolute top-16 right-4 w-60 border rounded-3xl shadow-2xl p-5 z-[100] fade-in ${isDarkMode ? 'bg-slate-900 border-slate-800' : 'bg-white border-slate-200'}`}>
-                            <button onClick={() => {setActiveModel('llama-3.3-70b-versatile'); setShowSettings(false)}} className={`w-full text-left p-3 rounded-xl text-xs font-bold mb-2 border ${activeModel.includes('70b') ? 'border-blue-500 bg-blue-500/10 text-blue-500 shadow-sm' : 'border-transparent opacity-60'}`}>Llama 3.3 Expert</button>
-                            <button onClick={() => {setActiveModel('llama-3.1-8b-instant'); setShowSettings(false)}} className={`w-full text-left p-3 rounded-xl text-xs font-bold border ${activeModel.includes('8b') ? 'border-blue-500 bg-blue-500/10 text-blue-500 shadow-sm' : 'border-transparent opacity-60'}`}>Llama 3.1 Fast</button>
-                            <hr className="my-4 opacity-10" />
-                            <button onClick={() => { openGroq(); setShowSettings(false); }} className="w-full text-left p-3 hover:bg-blue-500/10 rounded-xl text-xs font-bold uppercase mb-2 text-blue-500 transition-colors">🛠️ Groq Console</button>
-                            <button onClick={() => {setShowFeedback(true); setShowSettings(false)}} className="w-full text-left p-3 hover:bg-blue-500/10 rounded-xl text-xs font-bold uppercase mb-2">📩 Feedback</button>
-                            <button onClick={() => setIsDarkMode(!isDarkMode)} className="w-full text-left p-3 hover:bg-blue-500/10 rounded-xl text-xs font-bold uppercase mb-2">🌓 Theme</button>
-                            <button onClick={() => window.location.reload()} className="w-full text-left p-3 hover:bg-red-500/10 rounded-xl text-xs font-bold uppercase text-red-500">🔒 Exit</button>
-                        </div>
-                    )}
-
-                    {showFeedback && (
-                        <div className="fixed inset-0 bg-black/70 backdrop-blur-md z-[200] flex items-center justify-center p-6">
-                            <div className={`w-full max-w-sm p-8 rounded-[2.5rem] border fade-in ${isDarkMode ? 'bg-slate-900 border-slate-800 shadow-2xl' : 'bg-white border-slate-200 shadow-xl'}`}>
-                                <h2 className="text-xl font-black mb-4 uppercase italic">Feedback</h2>
-                                <textarea className={`w-full p-4 rounded-2xl h-32 mb-4 outline-none border transition-colors ${isDarkMode ? 'bg-slate-800 border-slate-700 text-white focus:border-blue-500' : 'bg-slate-100 border-slate-200 focus:border-blue-500'}`} placeholder="Bugs or ideas?" value={feedbackText} onChange={(e) => setFeedbackText(e.target.value)} />
-                                <button onClick={async () => {
-                                    if(!feedbackText.trim()) return;
-                                    await fetch(`https://formspree.io/f/${FORMSPREE_ID}`, { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ feedback: feedbackText }) });
-                                    alert("Feedback Sent!"); setFeedbackText(''); setShowFeedback(false);
-                                }} className="w-full bg-blue-600 p-4 rounded-2xl font-bold text-xs uppercase text-white shadow-lg active:scale-95 transition-transform">Send to Dev</button>
-                                <button onClick={() => setShowFeedback(false)} className="w-full mt-2 p-2 text-[10px] font-bold opacity-50 uppercase">Cancel</button>
+                <div className={`flex flex-col h-full ${theme}`}>
+                    {/* MEME OVERLAYS */}
+                    {show67 && (
+                        <div className="meme-67">
+                            <div className="relative text-8xl font-black italic text-blue-500 drop-shadow-2xl">
+                                67
+                                <div className="hand hand-left"></div>
+                                <div className="hand hand-right"></div>
                             </div>
                         </div>
                     )}
+                    {showDumb && <div className="flash-text flex items-center justify-center">U DUMB</div>}
 
-                    <div className="flex-1 overflow-y-auto p-4 space-y-8 pb-32">
+                    <header className={`p-4 border-b flex justify-between items-center z-40 ${isDarkMode ? 'bg-slate-900/50 border-slate-800' : 'bg-white/50 border-slate-200'}`}>
+                        <span className="text-blue-500 font-black italic uppercase">Universal AI</span>
+                        <button onClick={() => setShowSettings(!showSettings)} className="p-2 bg-blue-500/10 rounded-full">⚙️</button>
+                    </header>
+
+                    <div className="flex-1 overflow-y-auto p-4 space-y-6 pb-32">
                         {messages.map((m, i) => (
                             <div key={i} className={`flex ${m.role === 'user' ? 'justify-end' : 'justify-start'}`}>
-                                <div className={`max-w-[90%] p-4 rounded-2xl text-sm relative group shadow-sm ${m.role === 'user' ? 'bg-blue-600 text-white' : (isDarkMode ? 'bg-slate-900 border border-slate-800 text-slate-100' : 'bg-white border border-slate-200 text-slate-900')}`}>
-                                    <div className="prose prose-invert break-words" dangerouslySetInnerHTML={{ __html: marked.parse(m.content) }} />
-                                    {m.role === 'assistant' && (
-                                        <button onClick={() => {navigator.clipboard.writeText(m.content); alert("Copied!");}} className="absolute -bottom-7 left-1 text-[9px] font-black text-blue-500 uppercase flex items-center gap-1 opacity-0 group-hover:opacity-100 transition-all">
-                                            <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5"><rect x="9" y="9" width="13" height="13" rx="2" ry="2"></rect><path d="M5 15H4a2 2 0 0 1-2-2V4a2 2 0 0 1 2-2h9a2 2 0 0 1 2 2v1"></path></svg>
-                                            Copy Response
-                                        </button>
-                                    )}
+                                <div className={`max-w-[85%] p-4 rounded-2xl text-sm ${m.role === 'user' ? 'bg-blue-600' : (isDarkMode ? 'bg-slate-900 border border-slate-800' : 'bg-white border border-slate-200')}`}>
+                                    <div className="prose prose-invert" dangerouslySetInnerHTML={{ __html: marked.parse(m.content) }} />
                                 </div>
                             </div>
                         ))}
-                        {loading && <div className="text-blue-500 text-[10px] font-black animate-pulse px-2 uppercase tracking-[0.3em]">AI Thinking...</div>}
                         <div ref={endRef} />
                     </div>
 
-                    <footer className="p-4 fixed bottom-0 w-full backdrop-blur-md z-30 flex flex-col items-center">
-                        <div className={`flex gap-2 w-full max-w-3xl p-2 rounded-[2rem] border ${isDarkMode ? 'bg-slate-900/50 border-white/5 shadow-2xl' : 'bg-white border-slate-200 shadow-xl'}`}>
-                            <input className={`flex-1 p-4 bg-transparent outline-none text-sm ${isDarkMode ? 'text-white' : 'text-slate-900'}`} placeholder="Ask anything" value={input} onChange={(e) => setInput(e.target.value)} onKeyPress={(e) => e.key === 'Enter' && onChat()} />
-                            <button onClick={onChat} className="bg-blue-600 px-8 rounded-[1.5rem] font-black text-white text-xs uppercase shadow-lg active:scale-95 transition-transform">Send</button>
+                    <footer className="p-4 fixed bottom-0 w-full backdrop-blur-md flex flex-col items-center">
+                        <div className={`flex gap-2 w-full max-w-3xl p-2 rounded-full border ${isDarkMode ? 'bg-slate-900/50 border-white/10' : 'bg-white border-slate-200'}`}>
+                            <input className="flex-1 p-3 bg-transparent outline-none text-sm" placeholder="Ask anything" value={input} onChange={(e) => setInput(e.target.value)} onKeyPress={(e) => e.key === 'Enter' && onChat()} />
+                            <button onClick={onChat} className="bg-blue-600 px-6 rounded-full font-bold text-white text-xs uppercase">Send</button>
                         </div>
-                        <p className={`mt-2 text-[9px] font-bold uppercase tracking-widest opacity-40 ${isDarkMode ? 'text-white' : 'text-slate-900'}`}>Uni AI can make mistakes as it is a AI</p>
+                        <p className="mt-2 text-[8px] font-bold uppercase opacity-40">Uni AI can make mistakes as it is a AI</p>
                     </footer>
                 </div>
             );

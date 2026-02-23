@@ -113,7 +113,7 @@
                 return (
                     <div className={`h-full flex flex-col items-center justify-center p-6 ${theme}`}>
                         <div className={`w-full max-w-[340px] p-10 rounded-[3rem] border transition-all ${isDarkMode ? 'bg-slate-900 border-slate-800 shadow-2xl' : 'bg-white border-slate-200 shadow-xl'}`}>
-                            <h1 className="text-3xl font-black mb-2 tracking-tighter ">🌍Universal AI</h1>
+                            <h1 className="text-3xl font-black mb-2 tracking-tighter text-center">🌍Universal AI</h1>
                             <p className="text-center text-[10px] font-bold text-blue-500 tracking-[0.2em] mb-8 uppercase opacity-60">Authentication Required</p>
                             <button onClick={() => window.open('https://console.groq.com/keys', '_blank')} className="block w-full py-3 rounded-xl bg-blue-600/10 border border-blue-600/30 text-blue-500 font-black uppercase text-[10px] text-center tracking-widest mb-6 hover:bg-blue-600/20 active:scale-95 transition-all">Get Groq Api Key</button>
                             <input type="password" placeholder="Enter API key to start" className={`w-full p-4 rounded-2xl mb-4 text-center border outline-none font-bold transition-all ${isDarkMode ? 'bg-slate-800 border-slate-700 text-white' : 'bg-slate-100 border-slate-200 text-slate-900'}`} value={input} onChange={(e) => setInput(e.target.value)} onKeyPress={(e) => e.key === 'Enter' && handleLogin()} />

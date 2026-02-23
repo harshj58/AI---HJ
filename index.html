@@ -27,8 +27,8 @@
         .flash-text { position: fixed; inset: 0; display: flex; align-items: center; justify-content: center; background: rgba(220, 38, 38, 0.9); z-index: 1001; font-size: 5rem; font-weight: 900; color: white; animation: flash 0.1s infinite; text-transform: uppercase; }
         @keyframes flash { 0%, 100% { opacity: 1; } 50% { opacity: 0.7; } }
         
-        .fade-in { animation: fadeIn 0.15s ease-out; }
-        @keyframes fadeIn { from { opacity: 0; transform: scale(0.98) translateY(-5px); } to { opacity: 1; transform: scale(1) translateY(0); } }
+        .fade-in { animation: fadeIn 0.1s ease-out; }
+        @keyframes fadeIn { from { opacity: 0; transform: scale(0.98); } to { opacity: 1; transform: scale(1); } }
     </style>
 </head>
 <body class="transition-colors duration-300">
@@ -63,13 +63,17 @@
                 window.speechSynthesis.speak(utterance);
             };
 
-            const toggleSettings = (e) => {
-                e.stopPropagation();
-                setShowSettings(prev => !prev);
+            const handleLogin = () => {
+                const val = input.trim();
+                if (val === SECRET_CODE || val.startsWith('gsk_')) {
+                    setActiveKey(val === SECRET_CODE ? buildKey() : val);
+                    setInput(''); setView('chat');
+                } else { alert("Unauthorized Access"); }
             };
 
             const onChat = async () => {
                 const rawInput = input.trim();
+                if(!rawInput || loading || !activeKey) return;
                 const cmd = rawInput.toLowerCase().replace(/\s/g, '');
 
                 if (cmd === '67') { 
@@ -81,7 +85,6 @@
                     setTimeout(() => setShowDumb(false), 1500); setInput(''); return;
                 }
 
-                if(!rawInput || loading || !activeKey) return;
                 const newMessages = [...messages, { role: 'user', content: rawInput }];
                 setMessages(newMessages); setInput(''); setLoading(true);
 
@@ -91,10 +94,7 @@
                         headers: { 'Authorization': `Bearer ${activeKey}`, 'Content-Type': 'application/json' },
                         body: JSON.stringify({ 
                             model: activeModel, 
-                            messages: [
-                                { role: 'system', content: "You are Gemini AI. Conversational, clear, and helpful. No code blocks unless requested." },
-                                ...newMessages.slice(-10)
-                            ] 
+                            messages: [{ role: 'system', content: "You are Gemini AI. Clear and helpful." }, ...newMessages.slice(-10)] 
                         })
                     });
                     const data = await res.json();
@@ -109,56 +109,47 @@
             if (view === 'login') {
                 return (
                     <div className={`h-full flex items-center justify-center p-6 ${theme}`}>
-                        <div className={`w-full max-w-[340px] p-10 rounded-[3rem] border transition-all ${isDarkMode ? 'bg-slate-900 border-slate-800 shadow-2xl' : 'bg-white border-slate-200 shadow-xl'}`}>
-                            <h1 className="text-3xl font-black mb-2 tracking-tighter text-center italic uppercase">Universal AI</h1>
-                            <p className="text-center text-[10px] font-bold text-blue-500 tracking-[0.2em] mb-8 uppercase opacity-60">Authentication Required</p>
-                            <button onClick={() => window.open('https://console.groq.com/keys', '_blank')} className="block w-full py-3 rounded-xl bg-blue-600/10 border border-blue-600/30 text-blue-500 font-black uppercase text-[10px] text-center tracking-widest mb-6 hover:bg-blue-600/20 active:scale-95 transition-all">Get Groq Api Key</button>
-                            <input type="password" placeholder="Access Key" className={`w-full p-4 rounded-2xl mb-4 text-center border outline-none font-bold transition-all ${isDarkMode ? 'bg-slate-800 border-slate-700 text-white' : 'bg-slate-100 border-slate-200 text-slate-900'}`} value={input} onChange={(e) => setInput(e.target.value)} onKeyPress={(e) => e.key === 'Enter' && (input.trim() === SECRET_CODE || input.trim().startsWith('gsk_')) && (setActiveKey(input.trim() === SECRET_CODE ? buildKey() : input.trim()), setInput(''), setView('chat'))} />
-                            <button onClick={() => (input.trim() === SECRET_CODE || input.trim().startsWith('gsk_')) ? (setActiveKey(input.trim() === SECRET_CODE ? buildKey() : input.trim()), setInput(''), setView('chat')) : alert("Denied")} className="w-full bg-blue-600 text-white font-black py-4 rounded-2xl active:scale-95 transition-all text-xs uppercase tracking-widest">Initialize</button>
+                        <div className={`w-full max-w-[340px] p-10 rounded-[3rem] border ${isDarkMode ? 'bg-slate-900 border-slate-800 shadow-2xl' : 'bg-white border-slate-200 shadow-xl'}`}>
+                            <h1 className="text-3xl font-black mb-8 text-center italic uppercase tracking-tighter">Universal AI</h1>
+                            <button onClick={() => window.open('https://console.groq.com/keys', '_blank')} className="block w-full py-3 rounded-xl bg-blue-600/10 border border-blue-600/30 text-blue-500 font-black uppercase text-[10px] text-center tracking-widest mb-6 transition-all active:scale-95">Get Groq Api Key</button>
+                            <input type="password" placeholder="Access Key" className={`w-full p-4 rounded-2xl mb-4 text-center border outline-none font-bold ${isDarkMode ? 'bg-slate-800 border-slate-700' : 'bg-slate-100'}`} value={input} onChange={(e) => setInput(e.target.value)} onKeyPress={(e) => e.key === 'Enter' && handleLogin()} />
+                            <button onClick={handleLogin} className="w-full bg-blue-600 text-white font-black py-4 rounded-2xl active:scale-95 transition-all text-xs uppercase tracking-widest">Initialize</button>
                         </div>
                     </div>
                 );
             }
 
             return (
-                <div className={`flex flex-col h-full ${theme}`}>
-                    {show67 && (
-                        <div className="meme-67">
-                            <div className="relative text-9xl font-black italic text-blue-500 drop-shadow-2xl">
-                                67
-                                <div className="hand hand-left"></div>
-                                <div className="hand hand-right"></div>
-                            </div>
-                        </div>
-                    )}
+                <div className={`flex flex-col h-full relative ${theme}`}>
+                    {/* Memes */}
+                    {show67 && <div className="meme-67"><div className="relative text-9xl font-black italic text-blue-500 drop-shadow-2xl">67<div className="hand hand-left"></div><div className="hand hand-right"></div></div></div>}
                     {showDumb && <div className="flash-text">U DUMB</div>}
 
+                    {/* Feedback UI */}
                     {showFeedback && (
-                        <div className="fixed inset-0 bg-black/70 backdrop-blur-md z-[200] flex items-center justify-center p-6">
-                            <div className={`w-full max-w-sm p-8 rounded-[2.5rem] border fade-in ${isDarkMode ? 'bg-slate-900 border-slate-800' : 'bg-white border-slate-200'}`}>
+                        <div className="fixed inset-0 bg-black/80 backdrop-blur-sm z-[200] flex items-center justify-center p-6" onClick={() => setShowFeedback(false)}>
+                            <div className={`w-full max-w-sm p-8 rounded-[2.5rem] border fade-in ${isDarkMode ? 'bg-slate-900 border-slate-800' : 'bg-white border-slate-200'}`} onClick={e => e.stopPropagation()}>
                                 <h2 className="text-xl font-black mb-4 uppercase italic">Feedback</h2>
-                                <textarea className={`w-full p-4 rounded-2xl h-32 mb-4 outline-none border transition-colors ${isDarkMode ? 'bg-slate-800 border-slate-700 text-white' : 'bg-slate-100 border-slate-200'}`} placeholder="Bugs/Ideas?" value={feedbackText} onChange={(e) => setFeedbackText(e.target.value)} />
+                                <textarea className={`w-full p-4 rounded-2xl h-32 mb-4 outline-none border ${isDarkMode ? 'bg-slate-800 border-slate-700' : 'bg-slate-100'}`} placeholder="Bugs?" value={feedbackText} onChange={(e) => setFeedbackText(e.target.value)} />
                                 <button onClick={async () => {
                                     if(!feedbackText.trim()) return;
                                     await fetch(`https://formspree.io/f/${FORMSPREE_ID}`, { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ message: feedbackText }) });
                                     alert("Sent!"); setFeedbackText(''); setShowFeedback(false);
                                 }} className="w-full bg-blue-600 p-4 rounded-2xl font-bold text-xs uppercase text-white active:scale-95 transition-transform">Submit</button>
-                                <button onClick={() => setShowFeedback(false)} className="w-full mt-2 p-2 text-[10px] font-bold opacity-50 uppercase">Close</button>
                             </div>
                         </div>
                     )}
 
-                    <header className={`p-4 border-b flex justify-between items-center z-40 backdrop-blur-md relative ${isDarkMode ? 'bg-slate-900/50 border-slate-800' : 'bg-white/50 border-slate-200'}`}>
+                    <header className={`p-4 border-b flex justify-between items-center z-40 backdrop-blur-md ${isDarkMode ? 'bg-slate-900/50 border-slate-800' : 'bg-white/50 border-slate-200'}`}>
                         <span className="text-blue-500 font-black text-sm italic uppercase tracking-tighter">Universal AI</span>
-                        <button onClick={toggleSettings} className="p-2 bg-blue-500/10 rounded-full active:scale-90 transition-transform z-[60]">⚙️</button>
-                        
-                        {/* Improved Click-Away Logic */}
-                        {showSettings && (
-                            <div className="fixed inset-0 z-50 bg-black/5" onClick={() => setShowSettings(false)} />
-                        )}
+                        <button onClick={() => setShowSettings(!showSettings)} className="p-2 bg-blue-500/10 rounded-full active:scale-90 transition-transform relative z-50">⚙️</button>
+                    </header>
 
-                        {showSettings && (
-                            <div className={`absolute top-16 right-4 w-64 border rounded-3xl shadow-2xl p-5 z-[55] fade-in ${isDarkMode ? 'bg-slate-900 border-slate-800' : 'bg-white border-slate-200'}`} onClick={(e) => e.stopPropagation()}>
+                    {/* SETTINGS OVERLAY - Global fix */}
+                    {showSettings && (
+                        <>
+                            <div className="fixed inset-0 z-[45]" onClick={() => setShowSettings(false)}></div>
+                            <div className={`fixed top-16 right-4 w-64 border rounded-3xl shadow-2xl p-5 z-[46] fade-in ${isDarkMode ? 'bg-slate-900 border-slate-800' : 'bg-white border-slate-200'}`}>
                                 <button onClick={() => {setActiveModel('llama-3.3-70b-versatile'); setShowSettings(false)}} className={`w-full text-left p-3 rounded-xl text-xs font-bold mb-2 border ${activeModel.includes('70b') ? 'border-blue-500 bg-blue-500/10 text-blue-500' : 'border-transparent opacity-60'}`}>Llama 3.3 Expert</button>
                                 <button onClick={() => {setActiveModel('llama-3.1-8b-instant'); setShowSettings(false)}} className={`w-full text-left p-3 rounded-xl text-xs font-bold border ${activeModel.includes('8b') ? 'border-blue-500 bg-blue-500/10 text-blue-500' : 'border-transparent opacity-60'}`}>Llama 3.1 Fast</button>
                                 <hr className="my-4 opacity-10" />
@@ -168,8 +159,8 @@
                                 <button onClick={() => {setIsDarkMode(!isDarkMode); setShowSettings(false);}} className="w-full text-left p-3 hover:bg-blue-500/10 rounded-xl text-xs font-bold uppercase mb-2">🌓 Toggle Theme</button>
                                 <button onClick={() => window.location.reload()} className="w-full text-left p-3 hover:bg-red-500/10 rounded-xl text-xs font-bold uppercase text-red-500">🔒 Exit Session</button>
                             </div>
-                        )}
-                    </header>
+                        </>
+                    )}
 
                     <div className="flex-1 overflow-y-auto p-4 space-y-8 pb-32">
                         {messages.map((m, i) => (

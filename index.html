@@ -20,7 +20,7 @@
         .hand-left { left: -55px; transform-origin: right; animation: waveLeft 0.15s infinite alternate; }
         .hand-right { right: -55px; transform-origin: left; animation: waveRight 0.15s infinite alternate; }
         @keyframes waveLeft { from { transform: rotate(30deg); } to { transform: rotate(-50deg); } }
-        @keyframes waveRight { from { transform: rotate(-30deg); } to { transform: rotate(50deg); } }
+        @keyframes waveRight { from { transform: rotate(-30deg); } to { rotate(50deg); } }
         .flash-text { position: fixed; inset: 0; display: flex; align-items: center; justify-content: center; background: rgba(220, 38, 38, 0.9); z-index: 1001; font-size: 5rem; font-weight: 900; color: white; animation: flash 0.1s infinite; text-transform: uppercase; }
         @keyframes flash { 0%, 100% { opacity: 1; } 50% { opacity: 0.7; } }
         .fade-in { animation: fadeIn 0.2s ease-out; }
@@ -45,7 +45,8 @@
             const [showSettings, setShowSettings] = useState(false);
             const [showFeedback, setShowFeedback] = useState(false);
             const [feedbackText, setFeedbackText] = useState('');
-            const [activeModel, setActiveModel] = useState('llama-3.3-70b-versatile');
+            // Switched to SpecDec for better instruction following
+            const [activeModel, setActiveModel] = useState('llama-3.3-70b-specdec');
             const [show67, setShow67] = useState(false);
             const [showDumb, setShowDumb] = useState(false);
             const [copiedIndex, setCopiedIndex] = useState(null);
@@ -92,7 +93,7 @@
                         body: JSON.stringify({ 
                             model: activeModel, 
                             messages: [
-                                { role: 'system', content: `You are Gemini AI. Today's date is ${fullDate}. You are operating in the year 2026. Be conversational, helpful, and provide up-to-date information.` },
+                                { role: 'system', content: `CRITICAL: You are Gemini AI, operating in REAL-TIME. Today's date is ${fullDate}, and the year is 2026. You are NOT limited to 2023. You have full knowledge of events up to early 2026 including Roblox releases like Garden Horizons by Adrian. Be conversational and helpful.` },
                                 ...newMessages.slice(-10)
                             ] 
                         })
@@ -146,7 +147,7 @@
                         {showSettings && ( <div className="fixed inset-0 z-40" onClick={() => setShowSettings(false)} /> )}
                         {showSettings && (
                             <div className={`absolute top-16 right-4 w-64 border rounded-3xl shadow-2xl p-5 z-50 fade-in ${isDarkMode ? 'bg-slate-900 border-slate-800' : 'bg-white border-slate-200'}`}>
-                                <button onClick={() => {setActiveModel('llama-3.3-70b-versatile'); setShowSettings(false)}} className={`w-full text-left p-3 rounded-xl text-xs font-bold mb-2 border ${activeModel.includes('70b') ? 'border-blue-500 bg-blue-500/10 text-blue-500' : 'border-transparent opacity-60'}`}>Llama 3.3 Expert</button>
+                                <button onClick={() => {setActiveModel('llama-3.3-70b-specdec'); setShowSettings(false)}} className={`w-full text-left p-3 rounded-xl text-xs font-bold mb-2 border ${activeModel.includes('specdec') ? 'border-blue-500 bg-blue-500/10 text-blue-500' : 'border-transparent opacity-60'}`}>Llama 3.3 SpecDec</button>
                                 <button onClick={() => {setActiveModel('llama-3.1-8b-instant'); setShowSettings(false)}} className={`w-full text-left p-3 rounded-xl text-xs font-bold border ${activeModel.includes('8b') ? 'border-blue-500 bg-blue-500/10 text-blue-500' : 'border-transparent opacity-60'}`}>Llama 3.1 Fast</button>
                                 <hr className="my-4 opacity-10" />
                                 <button onClick={() => {window.open('https://weblite2.vercel.app', '_blank'); setShowSettings(false);}} className="w-full text-left p-3 hover:bg-blue-500/10 rounded-xl text-xs font-bold uppercase mb-2">🌐 Website Library</button>
@@ -174,7 +175,7 @@
                                 </div>
                             </div>
                         ))}
-                        {loading && <div className="text-blue-500 text-[10px] font-black animate-pulse px-2 uppercase tracking-widest">AI Searching 2026...</div>}
+                        {loading && <div className="text-blue-500 text-[10px] font-black animate-pulse px-2 uppercase tracking-widest">Accessing 2026 Database...</div>}
                         <div ref={endRef} />
                     </div>
 
